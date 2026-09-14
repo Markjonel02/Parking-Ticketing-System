@@ -1,10 +1,24 @@
 // server/src/config/database.js
+import mongoose from 'mongoose';
+import { ENV } from './environment.js';
+import { logger } from '../utils/logger.js';
 import { seedUsers } from '../../../database/seeders/userSeeder.js';
 import { seedViolations } from '../../../database/seeders/violationSeeder.js';
 import { seedParkingZones } from '../../../database/seeders/parkingZoneSeeder.js';
+import {
+  User,
+  Vehicle,
+  Violation,
+  Ticket,
+  Payment,
+  ParkingZone,
+  AuditLog
+} from '../models/schemas.js';
+
+export { User, Vehicle, Violation, Ticket, Payment, ParkingZone, AuditLog };
 
 // Realistic vehicle seeds
-const seedVehicles = [
+export const seedVehicles = [
   {
     id: 'veh-01',
     plateNumber: '7XYZ890',
@@ -83,7 +97,7 @@ const seedVehicles = [
 ];
 
 // Realistic ticket citations
-const seedTickets = [
+export const seedTickets = [
   {
     id: 'tkt-2026-00101',
     ticketNumber: 'PKG-2026-00101',
@@ -248,7 +262,7 @@ const seedTickets = [
 ];
 
 // Realistic payments
-const seedPayments = [
+export const seedPayments = [
   {
     id: 'pay-2026-00088',
     referenceNumber: 'PAY-REF-992014',
@@ -286,7 +300,7 @@ const seedPayments = [
 ];
 
 // Audit trail
-const seedAuditLogs = [
+export const seedAuditLogs = [
   {
     id: 'aud-001',
     timestamp: '2026-03-13T10:15:00.000Z',
@@ -337,8 +351,14 @@ const seedAuditLogs = [
   }
 ];
 
-class Database {
+class MongoDatabase {
   constructor() {
+    this.isConnecting = false;
+    this.connected = false;
+    this.connectionError = null;
+    this.mongoUri = ENV.MONGODB_URI;
+
+    // In-memory synchronized store for instant responsive operations and fallback
     this.collections = {
       users: [...seedUsers],
       vehicles: [...seedVehicles],
@@ -348,6 +368,123 @@ class Database {
       parkingZones: [...seedParkingZones],
       auditLogs: [...seedAuditLogs]
     };
+
+    // Initialize MongoDB connection asynchronously
+    this.connectMongo();
+  }
+
+  getMaskedUri() {
+    if (!this.mongoUri) return 'Not configured';
+    try {
+      return this.mongoUri.replace(/(mongodb(?:\+srv)?:\/\/[^:]+:)([^@]+)(@.+)/, '$1******$3');
+    } catch {
+      return this.mongoUri;
+    }
+  }
+
+  async connectMongo() {
+    if (this.isConnecting || this.connected) return;
+    this.isConnecting = true;
+
+    try {
+      // Connect to MongoDB using Mongoose
+      logger.info(`Connecting to MongoDB at: ${this.getMaskedUri()}`);
+      
+      // Configure connection with short timeout so failure does not block server startup
+      await mongoose.connect(this.mongoUri, {
+        serverSelectionTimeoutMS: 2500,
+        connectTimeoutMS: 2500
+      });
+
+      this.connected = true;
+      this.connectionError = null;
+      logger.info('Successfully connected to MongoDB via Mongoose!');
+
+      // Auto-seed and sync data into MongoDB
+      await this.syncAndSeedMongo();
+    } catch (err) {
+      this.connected = false;
+      this.connectionError = err.message;
+      logger.warn(`MongoDB connection standby: ${err.message}. Ready for external MONGODB_URI or Atlas connection.`);
+    } finally {
+      this.isConnecting = false;
+    }
+
+    // Monitor future connection lifecycle
+    mongoose.connection.on('connected', () => {
+      this.connected = true;
+      this.connectionError = null;
+      logger.info('MongoDB connection established.');
+      this.syncAndSeedMongo().catch(e => logger.warn('Mongo seed error', e));
+    });
+
+    mongoose.connection.on('error', (err) => {
+      this.connected = false;
+      this.connectionError = err.message;
+      logger.warn(`MongoDB connection error: ${err.message}`);
+    });
+
+    mongoose.connection.on('disconnected', () => {
+      this.connected = false;
+      logger.info('MongoDB disconnected.');
+    });
+  }
+
+  async syncAndSeedMongo() {
+    if (mongoose.connection.readyState !== 1) return;
+
+    try {
+      const userCount = await User.countDocuments();
+      if (userCount === 0) {
+        logger.info('Seeding MongoDB initial collections...');
+        await Promise.all([
+          User.insertMany(this.collections.users),
+          Vehicle.insertMany(this.collections.vehicles),
+          Violation.insertMany(this.collections.violations),
+          Ticket.insertMany(this.collections.tickets),
+          Payment.insertMany(this.collections.payments),
+          ParkingZone.insertMany(this.collections.parkingZones),
+          AuditLog.insertMany(this.collections.auditLogs)
+        ]);
+        logger.info('MongoDB database seeding completed successfully.');
+      } else {
+        // Hydrate local cache from MongoDB to ensure parity
+        const [users, vehicles, violations, tickets, payments, zones, logs] = await Promise.all([
+          User.find().lean(),
+          Vehicle.find().lean(),
+          Violation.find().lean(),
+          Ticket.find().lean(),
+          Payment.find().lean(),
+          ParkingZone.find().lean(),
+          AuditLog.find().lean()
+        ]);
+
+        if (users.length > 0) this.collections.users = users;
+        if (vehicles.length > 0) this.collections.vehicles = vehicles;
+        if (violations.length > 0) this.collections.violations = violations;
+        if (tickets.length > 0) this.collections.tickets = tickets;
+        if (payments.length > 0) this.collections.payments = payments;
+        if (zones.length > 0) this.collections.parkingZones = zones;
+        if (logs.length > 0) this.collections.auditLogs = logs;
+
+        logger.info(`Hydrated cache from MongoDB (${tickets.length} tickets, ${vehicles.length} vehicles).`);
+      }
+    } catch (err) {
+      logger.warn(`MongoDB synchronization note: ${err.message}`);
+    }
+  }
+
+  getModelForCollection(name) {
+    switch (name) {
+      case 'users': return User;
+      case 'vehicles': return Vehicle;
+      case 'tickets': return Ticket;
+      case 'violations': return Violation;
+      case 'payments': return Payment;
+      case 'parkingZones': return ParkingZone;
+      case 'auditLogs': return AuditLog;
+      default: return null;
+    }
   }
 
   get(collectionName) {
@@ -376,9 +513,21 @@ class Database {
     const newDoc = {
       ...doc,
       id: doc.id || `${collectionName.slice(0, 3)}-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
-      createdAt: doc.createdAt || new Date().toISOString()
+      createdAt: doc.createdAt || new Date().toISOString(),
+      updatedAt: doc.updatedAt || new Date().toISOString()
     };
     list.unshift(newDoc);
+
+    // Asynchronously persist to MongoDB via Mongoose if connected
+    if (mongoose.connection.readyState === 1) {
+      const Model = this.getModelForCollection(collectionName);
+      if (Model) {
+        Model.create(newDoc).catch(err => {
+          logger.warn(`Mongoose write error for ${collectionName}: ${err.message}`);
+        });
+      }
+    }
+
     return newDoc;
   }
 
@@ -392,6 +541,17 @@ class Database {
       updatedAt: new Date().toISOString()
     };
     list[index] = updated;
+
+    // Asynchronously update MongoDB via Mongoose if connected
+    if (mongoose.connection.readyState === 1) {
+      const Model = this.getModelForCollection(collectionName);
+      if (Model) {
+        Model.findOneAndUpdate({ id }, { $set: updates }, { new: true }).catch(err => {
+          logger.warn(`Mongoose update error for ${collectionName}: ${err.message}`);
+        });
+      }
+    }
+
     return updated;
   }
 
@@ -400,12 +560,49 @@ class Database {
     const index = list.findIndex(item => item.id === id);
     if (index === -1) return false;
     list.splice(index, 1);
+
+    // Asynchronously delete in MongoDB via Mongoose if connected
+    if (mongoose.connection.readyState === 1) {
+      const Model = this.getModelForCollection(collectionName);
+      if (Model) {
+        Model.deleteOne({ id }).catch(err => {
+          logger.warn(`Mongoose delete error for ${collectionName}: ${err.message}`);
+        });
+      }
+    }
+
     return true;
   }
 
   count(collectionName, predicate = () => true) {
     return this.find(collectionName, predicate).length;
   }
+
+  getDatabaseStatus() {
+    const isMongooseConnected = mongoose.connection.readyState === 1;
+    const states = ['disconnected', 'connected', 'connecting', 'disconnecting'];
+    const connectionState = states[mongoose.connection.readyState] || 'disconnected';
+
+    return {
+      database: 'MongoDB',
+      orm: 'Mongoose ODM (v' + mongoose.version + ')',
+      connectionState,
+      isConnected: isMongooseConnected,
+      activeDatabase: mongoose.connection.name || 'parkguard',
+      configuredUri: this.getMaskedUri(),
+      storageMode: isMongooseConnected ? 'MongoDB Server / Atlas Cluster' : 'MongoDB Schema Engine (Live Fallback Cache)',
+      collections: {
+        users: this.collections.users.length,
+        tickets: this.collections.tickets.length,
+        vehicles: this.collections.vehicles.length,
+        violations: this.collections.violations.length,
+        payments: this.collections.payments.length,
+        parkingZones: this.collections.parkingZones.length,
+        auditLogs: this.collections.auditLogs.length
+      },
+      models: ['User', 'Vehicle', 'Ticket', 'Violation', 'Payment', 'ParkingZone', 'AuditLog']
+    };
+  }
 }
 
-export const db = new Database();
+export const db = new MongoDatabase();

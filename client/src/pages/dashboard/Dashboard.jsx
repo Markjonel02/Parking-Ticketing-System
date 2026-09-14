@@ -141,6 +141,7 @@ export function Dashboard() {
                   Live bay occupancy & rate tiers
                 </p>
               </div>
+              <Activity className="w-4 h-4 text-blue-600" />
             </div>
 
             <div className="space-y-3.5">

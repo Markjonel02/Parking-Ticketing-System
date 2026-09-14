@@ -1,5 +1,7 @@
 // server/src/models/ParkingZone.js
-import { db } from '../config/database.js';
+import { db, ParkingZone } from '../config/database.js';
+
+export { ParkingZone };
 
 export class ParkingZoneModel {
   static findAll(filter = {}) {

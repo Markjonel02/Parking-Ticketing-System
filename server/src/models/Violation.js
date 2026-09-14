@@ -1,5 +1,7 @@
 // server/src/models/Violation.js
-import { db } from '../config/database.js';
+import { db, Violation } from '../config/database.js';
+
+export { Violation };
 
 export class ViolationModel {
   static findAll(filter = {}) {

@@ -1,5 +1,7 @@
 // server/src/models/Vehicle.js
-import { db } from '../config/database.js';
+import { db, Vehicle } from '../config/database.js';
+
+export { Vehicle };
 
 export class VehicleModel {
   static findAll(filter = {}) {

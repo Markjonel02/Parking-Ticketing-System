@@ -1,29 +1,32 @@
 // client/src/pages/vehicles/Vehicles.jsx
-import React, { useState, useEffect } from "react";
-import { VehicleTable } from "../../components/vehicles/VehicleTable.jsx";
-import { VehicleDetails } from "../../components/vehicles/VehicleDetails.jsx";
-import { VehicleForm } from "../../components/vehicles/VehicleForm.jsx";
-import { useVehicles } from "../../hooks/useVehicles.js";
-import { Button } from "../../components/common/Button.jsx";
-import { Pagination } from "../../components/common/Pagination.jsx";
-import { useAppContext } from "../../context/AppContext.jsx";
-import { Car, Search, PlusCircle, RotateCw } from "lucide-react";
+import React, { useState, useEffect } from 'react';
+import { VehicleTable } from '../../components/vehicles/VehicleTable.jsx';
+import { VehicleDetails } from '../../components/vehicles/VehicleDetails.jsx';
+import { VehicleForm } from '../../components/vehicles/VehicleForm.jsx';
+import { useVehicles } from '../../hooks/useVehicles.js';
+import { Button } from '../../components/common/Button.jsx';
+import { Pagination } from '../../components/common/Pagination.jsx';
+import { useAppContext } from '../../context/AppContext.jsx';
+import { Car, Search, PlusCircle, RotateCw } from 'lucide-react';
 
 export function Vehicles() {
   const {
     selectedVehiclePlate,
     setSelectedVehiclePlate,
-    setIsCreateTicketOpen,
+    setIsCreateTicketOpen
   } = useAppContext();
 
-  const [searchInput, setSearchInput] = useState("");
+  const [searchInput, setSearchInput] = useState('');
   const [selectedPlate, setSelectedPlate] = useState(null);
   const [isRegisterOpen, setIsRegisterOpen] = useState(false);
 
-  const { vehicles, pagination, isLoading, setFilter, refetch } = useVehicles({
-    page: 1,
-    limit: 10,
-  });
+  const {
+    vehicles,
+    pagination,
+    isLoading,
+    setFilter,
+    refetch
+  } = useVehicles({ page: 1, limit: 10 });
 
   useEffect(() => {
     if (selectedVehiclePlate) {
@@ -42,11 +45,11 @@ export function Vehicles() {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h2 className="text-xl font-bold text-slate-900 tracking-tight flex items-center gap-2">
+            <Car className="w-5 h-5 text-blue-600" />
             Vehicle Master Registry
           </h2>
           <p className="text-xs text-slate-500 mt-0.5">
-            Cross-indexed DMV vehicle registrations, plate lookups, and citation
-            history
+            Cross-indexed DMV vehicle registrations, plate lookups, and citation history
           </p>
         </div>
 
@@ -70,10 +73,7 @@ export function Vehicles() {
       </div>
 
       {/* Search Input */}
-      <form
-        onSubmit={handleSearchSubmit}
-        className="bg-white p-4 rounded-xl border border-slate-200 shadow-xs flex gap-2"
-      >
+      <form onSubmit={handleSearchSubmit} className="bg-white p-4 rounded-xl border border-slate-200 shadow-xs flex gap-2">
         <div className="relative flex-1">
           <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
           <input
