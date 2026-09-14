@@ -1,12 +1,17 @@
 // client/src/pages/violations/Violations.jsx
-import React, { useState, useEffect } from 'react';
-import { violationApi } from '../../services/api/violationApi.js';
-import { formatCurrency } from '../../utils/formatCurrency.js';
-import { Button } from '../../components/common/Button.jsx';
-import { Modal } from '../../components/common/Modal.jsx';
-import { AlertOctagon, PlusCircle, ShieldAlert, CheckCircle2 } from 'lucide-react';
-import { useAppContext } from '../../context/AppContext.jsx';
-import { useAuth } from '../../hooks/useAuth.js';
+import React, { useState, useEffect } from "react";
+import { violationApi } from "../../services/api/violationApi.js";
+import { formatCurrency } from "../../utils/formatCurrency.js";
+import { Button } from "../../components/common/Button.jsx";
+import { Modal } from "../../components/common/Modal.jsx";
+import {
+  AlertOctagon,
+  PlusCircle,
+  ShieldAlert,
+  CheckCircle2,
+} from "lucide-react";
+import { useAppContext } from "../../context/AppContext.jsx";
+import { useAuth } from "../../hooks/useAuth.js";
 
 export function Violations() {
   const { showToast, triggerRefresh, refreshKey } = useAppContext();
@@ -19,14 +24,14 @@ export function Violations() {
 
   // Form State
   const [formData, setFormData] = useState({
-    code: '',
-    name: '',
-    description: '',
+    code: "",
+    name: "",
+    description: "",
     baseFine: 60,
     lateFee: 25,
-    severity: 'MEDIUM',
+    severity: "MEDIUM",
     gracePeriodDays: 21,
-    points: 0
+    points: 0,
   });
 
   async function loadViolations() {
@@ -37,7 +42,7 @@ export function Violations() {
         setViolations(res.data || []);
       }
     } catch (err) {
-      console.error('Error fetching violations', err);
+      console.error("Error fetching violations", err);
     } finally {
       setIsLoading(false);
     }
@@ -47,18 +52,18 @@ export function Violations() {
     loadViolations();
   }, [refreshKey]);
 
-  const canManage = user?.role === 'ADMIN' || user?.role === 'SUPERVISOR';
+  const canManage = user?.role === "ADMIN" || user?.role === "SUPERVISOR";
 
   function openCreate() {
     setFormData({
-      code: '',
-      name: '',
-      description: '',
+      code: "",
+      name: "",
+      description: "",
       baseFine: 75,
       lateFee: 30,
-      severity: 'MEDIUM',
+      severity: "MEDIUM",
       gracePeriodDays: 21,
-      points: 0
+      points: 0,
     });
     setSelectedViolation(null);
     setIsEditing(true);
@@ -73,7 +78,7 @@ export function Violations() {
       lateFee: v.lateFee,
       severity: v.severity,
       gracePeriodDays: v.gracePeriodDays,
-      points: v.points
+      points: v.points,
     });
     setSelectedViolation(v);
     setIsEditing(true);
@@ -84,23 +89,35 @@ export function Violations() {
     try {
       if (selectedViolation) {
         await violationApi.updateViolation(selectedViolation.id, formData);
-        showToast({ title: 'Infraction Updated', description: `Code ${formData.code} updated.`, status: 'success' });
+        showToast({
+          title: "Infraction Updated",
+          description: `Code ${formData.code} updated.`,
+          status: "success",
+        });
       } else {
         await violationApi.createViolation(formData);
-        showToast({ title: 'Infraction Created', description: `Code ${formData.code} provisioned.`, status: 'success' });
+        showToast({
+          title: "Infraction Created",
+          description: `Code ${formData.code} provisioned.`,
+          status: "success",
+        });
       }
       setIsEditing(false);
       loadViolations();
     } catch (err) {
-      showToast({ title: 'Operation Failed', description: err.message, status: 'error' });
+      showToast({
+        title: "Operation Failed",
+        description: err.message,
+        status: "error",
+      });
     }
   }
 
   const severityColors = {
-    LOW: 'bg-blue-50 text-blue-700 border-blue-200',
-    MEDIUM: 'bg-amber-50 text-amber-700 border-amber-200',
-    HIGH: 'bg-orange-50 text-orange-700 border-orange-200',
-    CRITICAL: 'bg-red-50 text-red-700 border-red-200'
+    LOW: "bg-blue-50 text-blue-700 border-blue-200",
+    MEDIUM: "bg-amber-50 text-amber-700 border-amber-200",
+    HIGH: "bg-orange-50 text-orange-700 border-orange-200",
+    CRITICAL: "bg-red-50 text-red-700 border-red-200",
   };
 
   return (
@@ -109,16 +126,21 @@ export function Violations() {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h2 className="text-xl font-bold text-slate-900 tracking-tight flex items-center gap-2">
-            <AlertOctagon className="w-5 h-5 text-red-600" />
             Municipal Infraction Codes
           </h2>
           <p className="text-xs text-slate-500 mt-0.5">
-            Statutory violation schedules, standard penalty schedules, and grace periods
+            Statutory violation schedules, standard penalty schedules, and grace
+            periods
           </p>
         </div>
 
         {canManage && (
-          <Button size="sm" colorScheme="brand" onClick={openCreate} leftIcon={<PlusCircle className="w-4 h-4" />}>
+          <Button
+            size="sm"
+            colorScheme="brand"
+            onClick={openCreate}
+            leftIcon={<PlusCircle className="w-4 h-4" />}
+          >
             Add Infraction Code
           </Button>
         )}
@@ -131,7 +153,9 @@ export function Violations() {
             key={v.id}
             onClick={() => canManage && openEdit(v)}
             className={`p-5 bg-white rounded-xl border border-slate-200 shadow-xs flex flex-col justify-between transition-all ${
-              canManage ? 'cursor-pointer hover:border-blue-400 hover:shadow-md' : ''
+              canManage
+                ? "cursor-pointer hover:border-blue-400 hover:shadow-md"
+                : ""
             }`}
           >
             <div>
@@ -139,23 +163,37 @@ export function Violations() {
                 <span className="font-mono font-bold text-xs px-2 py-0.5 bg-slate-900 text-white rounded">
                   {v.code}
                 </span>
-                <span className={`text-[10px] font-bold uppercase px-2 py-0.5 rounded border ${severityColors[v.severity] || severityColors.MEDIUM}`}>
+                <span
+                  className={`text-[10px] font-bold uppercase px-2 py-0.5 rounded border ${severityColors[v.severity] || severityColors.MEDIUM}`}
+                >
                   {v.severity}
                 </span>
               </div>
 
-              <h4 className="font-bold text-sm text-slate-900 leading-snug">{v.name}</h4>
-              <p className="text-xs text-slate-500 mt-1 line-clamp-2 leading-relaxed">{v.description}</p>
+              <h4 className="font-bold text-sm text-slate-900 leading-snug">
+                {v.name}
+              </h4>
+              <p className="text-xs text-slate-500 mt-1 line-clamp-2 leading-relaxed">
+                {v.description}
+              </p>
             </div>
 
             <div className="pt-4 mt-4 border-t border-slate-100 flex items-center justify-between text-xs">
               <div>
-                <span className="text-slate-400 block text-[10px] uppercase font-semibold">Base Fine</span>
-                <span className="font-bold text-base text-slate-900">{formatCurrency(v.baseFine)}</span>
+                <span className="text-slate-400 block text-[10px] uppercase font-semibold">
+                  Base Fine
+                </span>
+                <span className="font-bold text-base text-slate-900">
+                  {formatCurrency(v.baseFine)}
+                </span>
               </div>
               <div className="text-right">
-                <span className="text-slate-400 block text-[10px] uppercase font-semibold">Late Penalty</span>
-                <span className="font-semibold text-red-600">+{formatCurrency(v.lateFee)}</span>
+                <span className="text-slate-400 block text-[10px] uppercase font-semibold">
+                  Late Penalty
+                </span>
+                <span className="font-semibold text-red-600">
+                  +{formatCurrency(v.lateFee)}
+                </span>
               </div>
             </div>
           </div>
@@ -166,12 +204,21 @@ export function Violations() {
       <Modal
         isOpen={isEditing}
         onClose={() => setIsEditing(false)}
-        title={selectedViolation ? `Edit Infraction ${selectedViolation.code}` : 'Add Municipal Infraction'}
+        title={
+          selectedViolation
+            ? `Edit Infraction ${selectedViolation.code}`
+            : "Add Municipal Infraction"
+        }
         subtitle="Enforcement schedule and fine structure"
         size="md"
         footer={
           <>
-            <Button variant="outline" colorScheme="gray" size="sm" onClick={() => setIsEditing(false)}>
+            <Button
+              variant="outline"
+              colorScheme="gray"
+              size="sm"
+              onClick={() => setIsEditing(false)}
+            >
               Cancel
             </Button>
             <Button colorScheme="brand" size="sm" onClick={handleSave}>
@@ -183,21 +230,32 @@ export function Violations() {
         <form onSubmit={handleSave} className="space-y-3 text-xs">
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block font-semibold text-slate-700 mb-1">Violation Code *</label>
+              <label className="block font-semibold text-slate-700 mb-1">
+                Violation Code *
+              </label>
               <input
                 type="text"
                 required
                 value={formData.code}
-                onChange={(e) => setFormData({ ...formData, code: e.target.value.toUpperCase() })}
+                onChange={(e) =>
+                  setFormData({
+                    ...formData,
+                    code: e.target.value.toUpperCase(),
+                  })
+                }
                 placeholder="e.g. METER-001"
                 className="w-full font-mono uppercase p-2 rounded-lg border border-slate-300 focus:ring-2 focus:ring-blue-500"
               />
             </div>
             <div>
-              <label className="block font-semibold text-slate-700 mb-1">Severity Tier</label>
+              <label className="block font-semibold text-slate-700 mb-1">
+                Severity Tier
+              </label>
               <select
                 value={formData.severity}
-                onChange={(e) => setFormData({ ...formData, severity: e.target.value })}
+                onChange={(e) =>
+                  setFormData({ ...formData, severity: e.target.value })
+                }
                 className="w-full p-2 rounded-lg border border-slate-300 bg-white"
               >
                 <option value="LOW">LOW</option>
@@ -209,54 +267,77 @@ export function Violations() {
           </div>
 
           <div>
-            <label className="block font-semibold text-slate-700 mb-1">Title / Infraction Name *</label>
+            <label className="block font-semibold text-slate-700 mb-1">
+              Title / Infraction Name *
+            </label>
             <input
               type="text"
               required
               value={formData.name}
-              onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+              onChange={(e) =>
+                setFormData({ ...formData, name: e.target.value })
+              }
               placeholder="e.g. Expired Parking Meter"
               className="w-full p-2 rounded-lg border border-slate-300 focus:ring-2 focus:ring-blue-500"
             />
           </div>
 
           <div>
-            <label className="block font-semibold text-slate-700 mb-1">Description & Ordinance Reference</label>
+            <label className="block font-semibold text-slate-700 mb-1">
+              Description & Ordinance Reference
+            </label>
             <textarea
               rows={2}
               value={formData.description}
-              onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+              onChange={(e) =>
+                setFormData({ ...formData, description: e.target.value })
+              }
               className="w-full p-2 rounded-lg border border-slate-300 focus:ring-2 focus:ring-blue-500"
             />
           </div>
 
           <div className="grid grid-cols-3 gap-3">
             <div>
-              <label className="block font-semibold text-slate-700 mb-1">Base Fine ($)</label>
+              <label className="block font-semibold text-slate-700 mb-1">
+                Base Fine ($)
+              </label>
               <input
                 type="number"
                 required
                 value={formData.baseFine}
-                onChange={(e) => setFormData({ ...formData, baseFine: Number(e.target.value) })}
+                onChange={(e) =>
+                  setFormData({ ...formData, baseFine: Number(e.target.value) })
+                }
                 className="w-full p-2 rounded-lg border border-slate-300"
               />
             </div>
             <div>
-              <label className="block font-semibold text-slate-700 mb-1">Late Fee ($)</label>
+              <label className="block font-semibold text-slate-700 mb-1">
+                Late Fee ($)
+              </label>
               <input
                 type="number"
                 required
                 value={formData.lateFee}
-                onChange={(e) => setFormData({ ...formData, lateFee: Number(e.target.value) })}
+                onChange={(e) =>
+                  setFormData({ ...formData, lateFee: Number(e.target.value) })
+                }
                 className="w-full p-2 rounded-lg border border-slate-300"
               />
             </div>
             <div>
-              <label className="block font-semibold text-slate-700 mb-1">Grace Period (Days)</label>
+              <label className="block font-semibold text-slate-700 mb-1">
+                Grace Period (Days)
+              </label>
               <input
                 type="number"
                 value={formData.gracePeriodDays}
-                onChange={(e) => setFormData({ ...formData, gracePeriodDays: Number(e.target.value) })}
+                onChange={(e) =>
+                  setFormData({
+                    ...formData,
+                    gracePeriodDays: Number(e.target.value),
+                  })
+                }
                 className="w-full p-2 rounded-lg border border-slate-300"
               />
             </div>
