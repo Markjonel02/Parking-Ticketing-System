@@ -1,0 +1,39 @@
+// client/src/utils/constants.js
+export const APP_NAME = 'ParkGuard';
+export const APP_VERSION = '2.4.0';
+
+export const TICKET_STATUS = {
+  ISSUED: 'ISSUED',
+  PAID: 'PAID',
+  PENDING: 'PENDING',
+  OVERDUE: 'OVERDUE',
+  DISPUTED: 'DISPUTED',
+  CANCELLED: 'CANCELLED',
+  VOID: 'VOID'
+};
+
+export const TICKET_STATUS_COLORS = {
+  ISSUED: 'blue',
+  PAID: 'teal',
+  PENDING: 'yellow',
+  OVERDUE: 'red',
+  DISPUTED: 'purple',
+  CANCELLED: 'gray',
+  VOID: 'gray'
+};
+
+export const PAYMENT_METHODS = [
+  { id: 'CREDIT_CARD', label: 'Credit Card (Online / POS)' },
+  { id: 'DEBIT_CARD', label: 'Debit Card (PIN Secured)' },
+  { id: 'CASH', label: 'Cash (Municipal Counter Service)' },
+  { id: 'ONLINE_PORTAL', label: 'Citizen Online Web Portal' },
+  { id: 'BANK_TRANSFER', label: 'Municipal Electronic Wire (ACH)' }
+];
+
+export const US_STATES = [
+  'AL','AK','AZ','AR','CA','CO','CT','DE','FL','GA',
+  'HI','ID','IL','IN','IA','KS','KY','LA','ME','MD',
+  'MA','MI','MN','MS','MO','MT','NE','NV','NH','NJ',
+  'NM','NY','NC','ND','OH','OK','OR','PA','RI','SC',
+  'SD','TN','TX','UT','VT','VA','WA','WV','WI','WY'
+];

@@ -1,0 +1,15 @@
+// server/src/constants/paymentStatus.js
+export const PAYMENT_STATUS = {
+  COMPLETED: 'COMPLETED',
+  PENDING: 'PENDING',
+  FAILED: 'FAILED',
+  REFUNDED: 'REFUNDED'
+};
+
+export const PAYMENT_METHODS = {
+  CREDIT_CARD: 'CREDIT_CARD',
+  DEBIT_CARD: 'DEBIT_CARD',
+  CASH: 'CASH',
+  ONLINE_PORTAL: 'ONLINE_PORTAL',
+  BANK_TRANSFER: 'BANK_TRANSFER'
+};
