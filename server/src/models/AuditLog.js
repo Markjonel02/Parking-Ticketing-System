@@ -1,6 +1,7 @@
 // server/src/models/AuditLog.js
 import { db } from '../config/database.js';
 
+
 export class AuditLogModel {
   static findAll(filter = {}) {
     return db.find('auditLogs', (log) => {
