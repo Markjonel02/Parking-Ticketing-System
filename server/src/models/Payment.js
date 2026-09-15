@@ -1,5 +1,7 @@
 // server/src/models/Payment.js
-import { db } from '../config/database.js';
+import { db, Payment } from '../config/database.js';
+
+export { Payment };
 
 export class PaymentModel {
   static findAll(filter = {}) {

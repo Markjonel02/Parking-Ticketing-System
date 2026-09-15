@@ -1,5 +1,7 @@
 // server/src/models/Ticket.js
-import { db } from '../config/database.js';
+import { db, Ticket } from '../config/database.js';
+
+export { Ticket };
 
 export class TicketModel {
   static findAll(filter = {}) {

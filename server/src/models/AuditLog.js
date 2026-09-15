@@ -1,5 +1,7 @@
 // server/src/models/AuditLog.js
-import { db } from '../config/database.js';
+import { db, AuditLog } from '../config/database.js';
+
+export { AuditLog };
 
 
 export class AuditLogModel {

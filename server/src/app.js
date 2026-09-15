@@ -15,6 +15,7 @@ import { userRoutes } from './routes/userRoutes.js';
 import { parkingRoutes } from './routes/parkingRoutes.js';
 import { AuditService } from './services/auditService.js';
 import { authenticate } from './middleware/authMiddleware.js';
+import { db } from './config/database.js';
 
 export function createApp() {
   const app = express();
@@ -34,9 +35,35 @@ export function createApp() {
     res.json({
       status: 'operational',
       service: 'ParkGuard Citation Management API',
+      database: db.getDatabaseStatus(),
       timestamp: new Date().toISOString(),
       version: '2.4.0-enterprise'
     });
+  });
+
+  // MongoDB status & diagnostics
+  app.get('/api/database/status', (req, res) => {
+    res.json({
+      success: true,
+      data: db.getDatabaseStatus()
+    });
+  });
+
+  // Trigger manual sync or retry to MongoDB
+  app.post('/api/database/sync', async (req, res) => {
+    try {
+      await db.syncAndSeedMongo();
+      res.json({
+        success: true,
+        message: 'MongoDB synchronization cycle triggered.',
+        data: db.getDatabaseStatus()
+      });
+    } catch (e) {
+      res.status(500).json({
+        success: false,
+        message: e.message
+      });
+    }
   });
 
   // Core API Endpoints

@@ -1,5 +1,7 @@
 // server/src/models/User.js
-import { db } from '../config/database.js';
+import { db, User } from '../config/database.js';
+
+export { User };
 
 export class UserModel {
   static findAll(filter = {}) {
