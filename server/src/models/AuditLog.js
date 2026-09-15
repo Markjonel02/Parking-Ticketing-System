@@ -3,6 +3,7 @@ import { db, AuditLog } from '../config/database.js';
 
 export { AuditLog };
 
+
 export class AuditLogModel {
   static findAll(filter = {}) {
     return db.find('auditLogs', (log) => {
