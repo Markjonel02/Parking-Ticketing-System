@@ -4,6 +4,7 @@ import { useAppContext } from '../context/AppContext.jsx';
 import { useAuth } from '../hooks/useAuth.js';
 import { MainLayout } from '../components/layout/MainLayout.jsx';
 import { Dashboard } from '../pages/dashboard/Dashboard.jsx';
+import { AdminDashboard } from '../pages/dashboard/AdminDashboard.jsx';
 import { Tickets } from '../pages/tickets/Tickets.jsx';
 import { Vehicles } from '../pages/vehicles/Vehicles.jsx';
 import { Payments } from '../pages/payments/Payments.jsx';
@@ -17,7 +18,7 @@ import { RoleRoute } from './RoleRoute.jsx';
 
 export function AppRoutes() {
   const { activeTab } = useAppContext();
-  const { isAuthenticated, isLoading } = useAuth();
+  const { isAuthenticated, isLoading, user } = useAuth();
   const [authView, setAuthView] = useState('login'); // 'login' or 'forgot-password'
 
   if (isLoading) {
@@ -38,10 +39,12 @@ export function AppRoutes() {
     return <Login onForgotPasswordClick={() => setAuthView('forgot-password')} />;
   }
 
+  const isAdmin = user?.role === 'ADMIN';
+
   function renderActiveView() {
     switch (activeTab) {
       case 'dashboard':
-        return <Dashboard />;
+        return isAdmin ? <AdminDashboard /> : <Dashboard />;
       case 'tickets':
         return <Tickets />;
       case 'vehicles':
@@ -73,7 +76,7 @@ export function AppRoutes() {
       case 'settings':
         return <Settings />;
       default:
-        return <Dashboard />;
+        return isAdmin ? <AdminDashboard /> : <Dashboard />;
     }
   }
 

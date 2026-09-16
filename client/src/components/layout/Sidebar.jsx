@@ -54,10 +54,12 @@ export function Sidebar() {
     window.localStorage.setItem("pg:sidebar-collapsed", collapsed ? "1" : "0");
   }, [collapsed]);
 
+  const userRole = user?.role || "ADMIN";
+
   const navItems = [
     {
       id: "dashboard",
-      label: "Dashboard",
+      label: userRole === "ADMIN" ? "Admin Dashboard" : "Dashboard",
       icon: <LayoutDashboard className="w-4 h-4" />,
       roles: ["all"],
     },
@@ -105,7 +107,6 @@ export function Sidebar() {
     },
   ];
 
-  const userRole = user?.role || "ADMIN";
   const filteredNav = navItems.filter(
     (item) => item.roles.includes("all") || item.roles.includes(userRole),
   );
