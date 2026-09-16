@@ -20,7 +20,7 @@ import { Button } from '../common/Button.jsx';
 
 export function Sidebar() {
   const { activeTab, navigateTo, setIsCreateTicketOpen, setIsQuickPayOpen } = useAppContext();
-  const { user, switchDemoRole } = useAuth();
+  const { user } = useAuth();
 
   const navItems = [
     { id: 'dashboard', label: 'Dashboard', icon: <LayoutDashboard className="w-4 h-4" />, roles: ['all'] },
@@ -100,26 +100,14 @@ export function Sidebar() {
         })}
       </div>
 
-      {/* Demo Role Switcher */}
+      {/* Current Role Badge (read-only — role comes from the authenticated account) */}
       <div className="p-3 mx-3 mb-3 bg-slate-800/80 rounded-xl border border-slate-700/70 text-xs">
-        <div className="flex items-center justify-between mb-1.5">
+        <div className="flex items-center justify-between">
           <span className="text-[11px] font-semibold text-slate-300 flex items-center gap-1">
-            <Zap className="w-3 h-3 text-amber-400" /> Simulation Role
+            <Zap className="w-3 h-3 text-amber-400" /> Signed in as
           </span>
           <span className="text-[10px] text-blue-400 font-bold uppercase">{userRole}</span>
         </div>
-        <select
-          value={userRole}
-          onChange={(e) => switchDemoRole(e.target.value)}
-          aria-label="Simulation Role Selector"
-          className="w-full bg-slate-900 border border-slate-700 text-slate-200 text-xs rounded-lg px-2 py-1.5 focus:outline-none focus:border-blue-500 cursor-pointer"
-        >
-          <option value="ADMIN">Admin (Full Control)</option>
-          <option value="OFFICER">Officer (Enforcement Field)</option>
-          <option value="SUPERVISOR">Supervisor (Adjudication)</option>
-          <option value="CASHIER">Cashier (Settlement Counter)</option>
-          <option value="CITIZEN">Citizen (Self-Service Portal)</option>
-        </select>
       </div>
 
       {/* Footer User Profile */}

@@ -16,6 +16,10 @@ export function validateUser(data) {
     errors.role = 'Valid authorization role must be specified';
   }
 
+  if (!data.password || data.password.length < 8) {
+    errors.password = 'A temporary password of at least 8 characters is required';
+  }
+
   return {
     isValid: Object.keys(errors).length === 0,
     errors

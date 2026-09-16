@@ -1,47 +1,60 @@
 // server/src/models/Payment.js
-import { db, Payment } from '../config/database.js';
+import mongoose from 'mongoose';
+import { PAYMENT_STATUS, PAYMENT_METHODS } from '../constants/paymentStatus.js';
 
-export { Payment };
+const { Schema } = mongoose;
 
-export class PaymentModel {
-  static findAll(filter = {}) {
-    return db.find('payments', (p) => {
-      if (filter.status && p.status !== filter.status) return false;
-      if (filter.paymentMethod && p.paymentMethod !== filter.paymentMethod) return false;
-      if (filter.search) {
-        const q = filter.search.toLowerCase();
-        return (
-          p.referenceNumber.toLowerCase().includes(q) ||
-          p.ticketNumber.toLowerCase().includes(q) ||
-          p.plateNumber.toLowerCase().includes(q) ||
-          (p.paidBy && p.paidBy.toLowerCase().includes(q))
-        );
-      }
-      return true;
-    });
-  }
+const paymentSchema = new Schema(
+  {
+    referenceNumber: {
+      type: String,
+      required: true,
+      unique: true,
+      uppercase: true,
+      trim: true,
+      index: true,
+    },
+    ticket: { type: Schema.Types.ObjectId, ref: 'Ticket', required: true, index: true },
+    ticketNumber: { type: String, required: true, index: true },
+    plateNumber: { type: String, required: true, uppercase: true, trim: true },
+    amount: { type: Number, required: true, min: [0.01, 'Payment amount must be greater than zero'] },
+    paymentMethod: {
+      type: String,
+      enum: Object.values(PAYMENT_METHODS),
+      default: PAYMENT_METHODS.CREDIT_CARD,
+    },
+    cardBrand: { type: String, trim: true },
+    lastFour: { type: String, trim: true, maxlength: 4 },
+    status: {
+      type: String,
+      enum: Object.values(PAYMENT_STATUS),
+      default: PAYMENT_STATUS.COMPLETED,
+      index: true,
+    },
+    paidBy: { type: String, trim: true },
+    payerEmail: { type: String, trim: true, lowercase: true },
+    cashier: { type: Schema.Types.ObjectId, ref: 'User' },
+    cashierName: { type: String },
+    transactionDate: { type: Date, default: Date.now, index: true },
+    receiptUrl: { type: String },
+    notes: { type: String, trim: true },
+  },
+  {
+    timestamps: true,
+    toJSON: {
+      virtuals: true,
+      transform: (_doc, ret) => {
+        ret.id = ret._id.toString();
+        delete ret._id;
+        delete ret.__v;
+        return ret;
+      },
+    },
+    toObject: { virtuals: true },
+  },
+);
 
-  static findById(id) {
-    return db.findById('payments', id);
-  }
+paymentSchema.index({ referenceNumber: 'text', ticketNumber: 'text', plateNumber: 'text', paidBy: 'text' });
 
-  static findByReference(referenceNumber) {
-    return db.findOne('payments', p => p.referenceNumber.toUpperCase() === referenceNumber.trim().toUpperCase());
-  }
-
-  static findByTicketId(ticketId) {
-    return db.find('payments', p => p.ticketId === ticketId);
-  }
-
-  static create(paymentData) {
-    return db.insert('payments', {
-      ...paymentData,
-      status: paymentData.status || 'COMPLETED',
-      transactionDate: paymentData.transactionDate || new Date().toISOString()
-    });
-  }
-
-  static update(id, updates) {
-    return db.update('payments', id, updates);
-  }
-}
+export const Payment = mongoose.models.Payment || mongoose.model('Payment', paymentSchema);
+export default Payment;

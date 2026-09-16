@@ -2,14 +2,21 @@ import express from 'express';
 import path from 'path';
 import { createServer as createViteServer } from 'vite';
 import { createApp } from './server/src/app.js';
+import { connectDB } from './server/src/config/database.js';
 import { startOverdueTicketsScheduler } from './server/src/jobs/overdueTicketsJob.js';
+import { startReportCleanupScheduler } from './server/src/jobs/reportCleanupJob.js';
 
 async function startServer() {
+  // Fail fast if MongoDB is unreachable rather than serving an app that
+  // silently has no data.
+  await connectDB();
+
   const app = createApp();
   const PORT = 3000;
 
   // Start background jobs
   startOverdueTicketsScheduler(120000);
+  startReportCleanupScheduler(3600000);
 
   // Vite middleware for development
   if (process.env.NODE_ENV !== 'production') {
@@ -31,4 +38,7 @@ async function startServer() {
   });
 }
 
-startServer();
+startServer().catch((err) => {
+  console.error('Fatal error during server startup — is MongoDB reachable at MONGODB_URI?', err);
+  process.exit(1);
+});

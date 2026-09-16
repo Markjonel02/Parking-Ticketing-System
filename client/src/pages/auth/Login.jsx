@@ -2,12 +2,12 @@
 import React, { useState } from 'react';
 import { Button } from '../../components/common/Button.jsx';
 import { useAuth } from '../../hooks/useAuth.js';
-import { Shield, Lock, Mail, ArrowRight, UserCheck } from 'lucide-react';
+import { Shield, Lock, Mail, ArrowRight } from 'lucide-react';
 
 export function Login({ onLoginSuccess, onForgotPasswordClick }) {
   const { login } = useAuth();
-  const [email, setEmail] = useState('admin@parkguard.gov');
-  const [password, setPassword] = useState('password123');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
 
@@ -22,11 +22,6 @@ export function Login({ onLoginSuccess, onForgotPasswordClick }) {
     } else {
       setError(res.message || 'Invalid credentials');
     }
-  }
-
-  function setDemoCredentials(demoEmail) {
-    setEmail(demoEmail);
-    setPassword('password123');
   }
 
   return (
@@ -56,6 +51,7 @@ export function Login({ onLoginSuccess, onForgotPasswordClick }) {
               <input
                 type="email"
                 required
+                autoComplete="username"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="officer@parkguard.gov"
@@ -82,6 +78,7 @@ export function Login({ onLoginSuccess, onForgotPasswordClick }) {
               <input
                 type="password"
                 required
+                autoComplete="current-password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="••••••••"
@@ -101,43 +98,6 @@ export function Login({ onLoginSuccess, onForgotPasswordClick }) {
             Authenticate Terminal
           </Button>
         </form>
-
-        {/* Quick Demo Staff Logins */}
-        <div className="mt-6 pt-6 border-t border-slate-100">
-          <p className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider text-center mb-3">
-            Quick Simulation Credentials
-          </p>
-          <div className="grid grid-cols-2 gap-2 text-xs">
-            <button
-              type="button"
-              onClick={() => setDemoCredentials('admin@parkguard.gov')}
-              className="p-2 rounded-lg border border-slate-200 hover:bg-slate-50 text-slate-700 text-left font-medium"
-            >
-              👑 Admin (Vance)
-            </button>
-            <button
-              type="button"
-              onClick={() => setDemoCredentials('elena.rostova@parkguard.gov')}
-              className="p-2 rounded-lg border border-slate-200 hover:bg-slate-50 text-slate-700 text-left font-medium"
-            >
-              👮 Officer (Elena)
-            </button>
-            <button
-              type="button"
-              onClick={() => setDemoCredentials('sarah.sterling@parkguard.gov')}
-              className="p-2 rounded-lg border border-slate-200 hover:bg-slate-50 text-slate-700 text-left font-medium"
-            >
-              ⚖️ Supervisor (Sarah)
-            </button>
-            <button
-              type="button"
-              onClick={() => setDemoCredentials('julian.perez@parkguard.gov')}
-              className="p-2 rounded-lg border border-slate-200 hover:bg-slate-50 text-slate-700 text-left font-medium"
-            >
-              💳 Cashier (Julian)
-            </button>
-          </div>
-        </div>
       </div>
     </div>
   );

@@ -1,36 +1,43 @@
 // server/src/models/ParkingZone.js
-import { db, ParkingZone } from '../config/database.js';
+import mongoose from 'mongoose';
 
-export { ParkingZone };
+const { Schema } = mongoose;
 
-export class ParkingZoneModel {
-  static findAll(filter = {}) {
-    return db.find('parkingZones', (z) => {
-      if (filter.activeOnly && !z.isActive) return false;
-      if (filter.search) {
-        const q = filter.search.toLowerCase();
-        return z.name.toLowerCase().includes(q) || z.code.toLowerCase().includes(q) || (z.city && z.city.toLowerCase().includes(q));
-      }
-      return true;
-    });
-  }
+const parkingZoneSchema = new Schema(
+  {
+    code: {
+      type: String,
+      required: [true, 'Zone code is required'],
+      unique: true,
+      uppercase: true,
+      trim: true,
+      index: true,
+    },
+    name: { type: String, required: [true, 'Zone name is required'], trim: true },
+    city: { type: String, trim: true },
+    hourlyRate: { type: Number, default: 2.5, min: 0 },
+    multiplier: { type: Number, default: 1.0, min: 0 },
+    totalSpots: { type: Number, default: 100, min: 0 },
+    occupiedSpots: { type: Number, default: 0, min: 0 },
+    enforcementHours: { type: String, default: '8:00 AM - 8:00 PM' },
+    isActive: { type: Boolean, default: true, index: true },
+  },
+  {
+    timestamps: true,
+    toJSON: {
+      virtuals: true,
+      transform: (_doc, ret) => {
+        ret.id = ret._id.toString();
+        delete ret._id;
+        delete ret.__v;
+        return ret;
+      },
+    },
+    toObject: { virtuals: true },
+  },
+);
 
-  static findById(id) {
-    return db.findById('parkingZones', id);
-  }
+parkingZoneSchema.index({ name: 'text', city: 'text' });
 
-  static findByCode(code) {
-    return db.findOne('parkingZones', z => z.code.toUpperCase() === code.trim().toUpperCase());
-  }
-
-  static create(zoneData) {
-    return db.insert('parkingZones', {
-      ...zoneData,
-      isActive: zoneData.isActive !== undefined ? zoneData.isActive : true
-    });
-  }
-
-  static update(id, updates) {
-    return db.update('parkingZones', id, updates);
-  }
-}
+export const ParkingZone = mongoose.models.ParkingZone || mongoose.model('ParkingZone', parkingZoneSchema);
+export default ParkingZone;

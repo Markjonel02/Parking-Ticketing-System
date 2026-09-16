@@ -9,5 +9,5 @@ export const paymentRoutes = Router();
 
 paymentRoutes.get('/', authenticate, PaymentController.getPayments);
 paymentRoutes.get('/:id', authenticate, PaymentController.getPaymentById);
-paymentRoutes.get('/:id/receipt', PaymentController.getReceipt);
+paymentRoutes.get('/:id/receipt', authenticate, PaymentController.getReceipt);
 paymentRoutes.post('/', authenticate, validateRequest(validatePayment), PaymentController.processPayment);

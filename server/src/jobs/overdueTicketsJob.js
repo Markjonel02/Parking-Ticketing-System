@@ -1,48 +1,42 @@
 // server/src/jobs/overdueTicketsJob.js
-import { TicketModel } from '../models/Ticket.js';
+import { Ticket } from '../models/Ticket.js';
 import { AuditService } from '../services/auditService.js';
 import { logger } from '../utils/logger.js';
 
-export function runOverdueTicketsJob() {
+export async function runOverdueTicketsJob() {
   try {
     const now = new Date();
-    const tickets = TicketModel.findAll({ status: 'ISSUED' });
-    let updatedCount = 0;
+    const overdueDue = await Ticket.find({ status: 'ISSUED', dueDate: { $lt: now } });
 
-    for (const ticket of tickets) {
-      if (ticket.dueDate && new Date(ticket.dueDate) < now) {
-        const lateFee = ticket.lateFee || 25;
-        const newTotalDue = (ticket.totalDue || ticket.fineAmount) + lateFee;
+    for (const ticket of overdueDue) {
+      const lateFee = ticket.lateFee || 25;
+      // eslint-disable-next-line no-await-in-loop
+      ticket.status = 'OVERDUE';
+      ticket.lateFee = lateFee;
+      ticket.totalDue = (ticket.totalDue || ticket.baseFine) + lateFee;
+      ticket.overdueAssessedAt = now;
+      // eslint-disable-next-line no-await-in-loop
+      await ticket.save();
 
-        TicketModel.update(ticket.id, {
-          status: 'OVERDUE',
-          totalDue: newTotalDue,
-          overdueAssessedAt: now.toISOString()
-        });
-
-        AuditService.log({
-          user: null,
-          action: 'OVERDUE_PENALTY_APPLIED',
-          entityType: 'TICKET',
-          entityId: ticket.id,
-          details: `Ticket ${ticket.ticketNumber} marked OVERDUE. Late penalty of $${lateFee} added. New total: $${newTotalDue}`
-        });
-
-        updatedCount++;
-      }
+      // eslint-disable-next-line no-await-in-loop
+      await AuditService.log({
+        user: null,
+        action: 'OVERDUE_PENALTY_APPLIED',
+        entityType: 'TICKET',
+        entityId: ticket._id,
+        details: `Ticket ${ticket.ticketNumber} marked OVERDUE. Late penalty of $${lateFee} added. New total: $${ticket.totalDue}.`,
+      });
     }
 
-    if (updatedCount > 0) {
-      logger.info(`OverdueTicketsJob: Processed ${updatedCount} citations to OVERDUE status.`);
+    if (overdueDue.length > 0) {
+      logger.info(`OverdueTicketsJob: processed ${overdueDue.length} citation(s) to OVERDUE status.`);
     }
   } catch (err) {
     logger.error('Error executing overdue tickets batch job', err);
   }
 }
 
-export function startOverdueTicketsScheduler(intervalMs = 60000) {
-  // Initial run
+export function startOverdueTicketsScheduler(intervalMs = 120000) {
   runOverdueTicketsJob();
-  const timer = setInterval(runOverdueTicketsJob, intervalMs);
-  return timer;
+  return setInterval(runOverdueTicketsJob, intervalMs);
 }

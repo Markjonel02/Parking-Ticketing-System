@@ -18,7 +18,7 @@ import { useAuth } from '../../hooks/useAuth.js';
 
 export function MobileNavigation() {
   const { isMobileNavOpen, setIsMobileNavOpen, activeTab, navigateTo, setIsCreateTicketOpen } = useAppContext();
-  const { user, switchDemoRole } = useAuth();
+  const { user } = useAuth();
 
   useEffect(() => {
     if (isMobileNavOpen) {
@@ -104,22 +104,10 @@ export function MobileNavigation() {
           })}
         </div>
 
-        {/* Role Switcher */}
+        {/* Signed-in user (role comes from the authenticated account) */}
         <div className="p-4 border-t border-slate-800 bg-slate-950/70">
-          <label className="text-[11px] font-semibold text-slate-400 block mb-1.5">
-            Switch Role Perspective:
-          </label>
-          <select
-            value={user?.role || 'ADMIN'}
-            onChange={(e) => switchDemoRole(e.target.value)}
-            className="w-full bg-slate-800 text-white border border-slate-700 text-xs rounded-lg p-2"
-          >
-            <option value="ADMIN">Admin</option>
-            <option value="OFFICER">Officer</option>
-            <option value="SUPERVISOR">Supervisor</option>
-            <option value="CASHIER">Cashier</option>
-            <option value="CITIZEN">Citizen</option>
-          </select>
+          <p className="text-xs font-semibold text-white truncate">{user?.name || 'Staff Officer'}</p>
+          <p className="text-[10px] text-slate-400 truncate">{user?.badgeNumber || user?.role}</p>
         </div>
       </div>
     </div>

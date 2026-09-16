@@ -1,7 +1,6 @@
 // database/seeders/parkingZoneSeeder.js
 export const seedParkingZones = [
   {
-    id: 'zone-01',
     code: 'DWTN-A',
     name: 'Downtown Core Financial District',
     city: 'Metropolis',
@@ -14,7 +13,6 @@ export const seedParkingZones = [
     isActive: true
   },
   {
-    id: 'zone-02',
     code: 'COMM-B',
     name: 'Waterfront Commercial Wharf',
     city: 'Metropolis',
@@ -27,7 +25,6 @@ export const seedParkingZones = [
     isActive: true
   },
   {
-    id: 'zone-03',
     code: 'MED-C',
     name: 'General Medical Center Campus',
     city: 'Metropolis',
@@ -40,7 +37,6 @@ export const seedParkingZones = [
     isActive: true
   },
   {
-    id: 'zone-04',
     code: 'UNIV-D',
     name: 'University Campus Perimeter',
     city: 'Metropolis',
@@ -53,7 +49,6 @@ export const seedParkingZones = [
     isActive: true
   },
   {
-    id: 'zone-05',
     code: 'RES-E',
     name: 'Historic Hill Residential District',
     city: 'Metropolis',

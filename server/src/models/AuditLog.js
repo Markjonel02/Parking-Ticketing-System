@@ -1,32 +1,36 @@
 // server/src/models/AuditLog.js
-import { db, AuditLog } from '../config/database.js';
+import mongoose from 'mongoose';
 
-export { AuditLog };
+const { Schema } = mongoose;
 
+const auditLogSchema = new Schema(
+  {
+    user: { type: Schema.Types.ObjectId, ref: 'User', index: true },
+    userName: { type: String },
+    userRole: { type: String },
+    action: { type: String, required: true, index: true },
+    entityType: { type: String, index: true },
+    entityId: { type: Schema.Types.ObjectId, index: true },
+    ipAddress: { type: String },
+    details: { type: String },
+  },
+  {
+    // Audit entries are immutable and only ever created — no updatedAt needed.
+    timestamps: { createdAt: 'timestamp', updatedAt: false },
+    toJSON: {
+      virtuals: true,
+      transform: (_doc, ret) => {
+        ret.id = ret._id.toString();
+        delete ret._id;
+        delete ret.__v;
+        return ret;
+      },
+    },
+    toObject: { virtuals: true },
+  },
+);
 
-export class AuditLogModel {
-  static findAll(filter = {}) {
-    return db.find('auditLogs', (log) => {
-      if (filter.entityType && log.entityType !== filter.entityType) return false;
-      if (filter.userId && log.userId !== filter.userId) return false;
-      if (filter.action && log.action !== filter.action) return false;
-      if (filter.search) {
-        const q = filter.search.toLowerCase();
-        return (
-          log.action.toLowerCase().includes(q) ||
-          (log.userName && log.userName.toLowerCase().includes(q)) ||
-          (log.details && log.details.toLowerCase().includes(q)) ||
-          (log.entityId && log.entityId.toLowerCase().includes(q))
-        );
-      }
-      return true;
-    });
-  }
+auditLogSchema.index({ action: 'text', userName: 'text', details: 'text' });
 
-  static create(logData) {
-    return db.insert('auditLogs', {
-      ...logData,
-      timestamp: logData.timestamp || new Date().toISOString()
-    });
-  }
-}
+export const AuditLog = mongoose.models.AuditLog || mongoose.model('AuditLog', auditLogSchema);
+export default AuditLog;
