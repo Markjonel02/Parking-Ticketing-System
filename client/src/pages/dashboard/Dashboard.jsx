@@ -89,7 +89,6 @@ export function Dashboard() {
         <StatCard
           title="Active Citations"
           value={stats?.tickets?.issuedCount ?? 14}
-          change="+8% vs last week"
           isIncreasePositive={false}
           colorScheme="blue"
           helperText="Unresolved parking infractions"
@@ -98,7 +97,6 @@ export function Dashboard() {
         <StatCard
           title="Today's Collections"
           value={formatCurrency(stats?.payments?.todayRevenue ?? 1640)}
-          change="+14.2%"
           isIncreasePositive={true}
           colorScheme="teal"
           helperText="Municipal treasury deposits"
@@ -107,7 +105,6 @@ export function Dashboard() {
         <StatCard
           title="Delinquent / Overdue"
           value={stats?.tickets?.overdueCount ?? 6}
-          change="+2 tickets"
           isIncreasePositive={false}
           colorScheme="red"
           helperText="Subject to DMV registration holds"
@@ -116,7 +113,6 @@ export function Dashboard() {
         <StatCard
           title="Monitored Vehicles"
           value={stats?.vehicles?.totalCount ?? 28}
-          change="3 at boot threshold"
           colorScheme="purple"
           helperText="Automated plate scan registry"
           onClick={() => navigateTo("vehicles")}
@@ -141,7 +137,6 @@ export function Dashboard() {
                   Live bay occupancy & rate tiers
                 </p>
               </div>
-              <Activity className="w-4 h-4 text-blue-600" />
             </div>
 
             <div className="space-y-3.5">
