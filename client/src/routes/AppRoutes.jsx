@@ -1,5 +1,5 @@
 // client/src/routes/AppRoutes.jsx
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAppContext } from '../context/AppContext.jsx';
 import { useAuth } from '../hooks/useAuth.js';
 import { MainLayout } from '../components/layout/MainLayout.jsx';
@@ -20,6 +20,27 @@ export function AppRoutes() {
   const { activeTab } = useAppContext();
   const { isAuthenticated, isLoading, user } = useAuth();
   const [authView, setAuthView] = useState('login'); // 'login' or 'forgot-password'
+
+  // Keep the address bar honest. This app doesn't use a router — it swaps
+  // rendered content based on state — so without this, the URL can end up
+  // stuck on /login (or whatever was last typed/bookmarked) even after a
+  // successful login, while the authenticated dashboard is on screen.
+  // replaceState (not pushState) is used here since these are corrections
+  // for the current state, not user-initiated navigations; navigateTo()
+  // in AppContext already pushes a history entry per tab click.
+  useEffect(() => {
+    if (isLoading || typeof window === 'undefined') return;
+
+    const targetPath = !isAuthenticated
+      ? authView === 'forgot-password'
+        ? '/forgot-password'
+        : '/login'
+      : `/${activeTab}`;
+
+    if (window.location.pathname !== targetPath) {
+      window.history.replaceState({}, '', targetPath);
+    }
+  }, [isAuthenticated, isLoading, authView, activeTab]);
 
   if (isLoading) {
     return (
