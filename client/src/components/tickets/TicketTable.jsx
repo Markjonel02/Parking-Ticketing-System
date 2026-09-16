@@ -7,6 +7,7 @@ import { formatDate } from '../../utils/formatDate.js';
 import { Eye, CreditCard, ChevronRight } from 'lucide-react';
 import { Button } from '../common/Button.jsx';
 
+
 export function TicketTable({
   tickets = [],
   isLoading = false,
