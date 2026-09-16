@@ -1,55 +1,38 @@
 // server/src/controllers/violationController.js
 import { ViolationService } from '../services/violationService.js';
+import { ApiError } from '../utils/ApiError.js';
+import { asyncHandler } from '../utils/asyncHandler.js';
 
 export class ViolationController {
-  static async getViolations(req, res, next) {
-    try {
-      const { severity, activeOnly, search } = req.query;
-      const violations = ViolationService.getAllViolations({
-        severity,
-        activeOnly: activeOnly === 'true',
-        search
-      });
-      return res.json({ success: true, data: violations });
-    } catch (err) {
-      next(err);
-    }
-  }
+  static getViolations = asyncHandler(async (req, res) => {
+    const { severity, activeOnly, search } = req.query;
+    const violations = await ViolationService.getAllViolations({
+      severity,
+      activeOnly: activeOnly === 'true',
+      search,
+    });
+    return res.json({ success: true, data: violations });
+  });
 
-  static async getViolationById(req, res, next) {
-    try {
-      const violation = ViolationService.getViolationById(req.params.id) || ViolationService.getViolationByCode(req.params.id);
-      if (!violation) {
-        return res.status(404).json({ success: false, message: 'Violation code not found' });
-      }
-      return res.json({ success: true, data: violation });
-    } catch (err) {
-      next(err);
-    }
-  }
+  static getViolationById = asyncHandler(async (req, res) => {
+    const violation = await ViolationService.resolveViolation(req.params.id);
+    if (!violation) throw ApiError.notFound('Violation code not found.');
+    return res.json({ success: true, data: violation });
+  });
 
-  static async createViolation(req, res, next) {
-    try {
-      const created = ViolationService.createViolation(req.body);
-      return res.status(201).json({
-        success: true,
-        message: 'Violation code registered in municipal fee schedule',
-        data: created
-      });
-    } catch (err) {
-      next(err);
-    }
-  }
+  static createViolation = asyncHandler(async (req, res) => {
+    const created = await ViolationService.createViolation(req.body);
+    return res.status(201).json({
+      success: true,
+      message: 'Violation code registered in municipal fee schedule.',
+      data: created,
+    });
+  });
 
-  static async updateViolation(req, res, next) {
-    try {
-      const updated = ViolationService.updateViolation(req.params.id, req.body);
-      if (!updated) {
-        return res.status(404).json({ success: false, message: 'Violation record not found' });
-      }
-      return res.json({ success: true, message: 'Violation schedule updated', data: updated });
-    } catch (err) {
-      next(err);
-    }
-  }
+  static updateViolation = asyncHandler(async (req, res) => {
+    const updated = await ViolationService.updateViolation(req.params.id, req.body);
+    return res.json({ success: true, message: 'Violation schedule updated.', data: updated });
+  });
 }
+
+export default ViolationController;

@@ -1,199 +1,258 @@
 // server/src/services/ticketService.js
-import { TicketModel } from '../models/Ticket.js';
-import { VehicleModel } from '../models/Vehicle.js';
-import { ViolationModel } from '../models/Violation.js';
-import { ParkingZoneModel } from '../models/ParkingZone.js';
+import { Ticket } from '../models/Ticket.js';
+import { Vehicle } from '../models/Vehicle.js';
+import { ParkingZone } from '../models/ParkingZone.js';
+import { ViolationService } from './violationService.js';
 import { generateTicketNumber } from '../utils/generateTicketNumber.js';
 import { calculateFine } from '../utils/calculateFine.js';
 import { AuditService } from './auditService.js';
 import { NotificationService } from './notificationService.js';
+import { ApiError } from '../utils/ApiError.js';
+import { getPagination } from '../utils/pagination.js';
+import { TICKET_STATUS } from '../constants/ticketStatus.js';
+
+const POPULATE_FIELDS = [
+  { path: 'vehicle' },
+  { path: 'violation' },
+  { path: 'zone' },
+  { path: 'officer', select: 'name badgeNumber role' },
+];
+
+function buildFilter({ status, zoneId, officerId, plateNumber, search }) {
+  const filter = {};
+  if (status) filter.status = status;
+  if (zoneId) filter.zone = zoneId;
+  if (officerId) filter.officer = officerId;
+  if (plateNumber) filter.plateNumber = plateNumber.trim().toUpperCase();
+  if (search) filter.$text = { $search: search };
+  return filter;
+}
+
+async function resolveVehicle({ plateNumber, state, vehicleMake, vehicleModel, vehicleColor, ownerName, ownerEmail, ownerPhone }) {
+  const plate = plateNumber.trim().toUpperCase();
+  const registrationState = (state || 'CA').trim().toUpperCase();
+
+  let vehicle = await Vehicle.findOne({ plateNumber: plate, state: registrationState });
+  if (!vehicle) {
+    vehicle = await Vehicle.create({
+      plateNumber: plate,
+      state: registrationState,
+      make: vehicleMake || 'Unknown Make',
+      model: vehicleModel || 'Unknown Model',
+      color: vehicleColor || 'Unspecified',
+      ownerName: ownerName || 'Vehicle Registrant',
+      ownerEmail: ownerEmail || undefined,
+      ownerPhone: ownerPhone || undefined,
+    });
+  }
+  return vehicle;
+}
+
+async function generateUniqueTicketNumber() {
+  for (let attempt = 0; attempt < 5; attempt += 1) {
+    const candidate = generateTicketNumber();
+    // eslint-disable-next-line no-await-in-loop
+    const exists = await Ticket.exists({ ticketNumber: candidate });
+    if (!exists) return candidate;
+  }
+  throw new ApiError(500, 'Failed to generate a unique ticket number, please retry.');
+}
 
 export class TicketService {
-  static getAllTickets(filter = {}) {
-    return TicketModel.findAll(filter);
+  static async getAllTickets(query = {}) {
+    const { page = 1, limit = 10 } = query;
+    const filter = buildFilter(query);
+    const { skip, limit: pageSize, buildMeta } = getPagination(page, limit);
+
+    const [tickets, totalItems] = await Promise.all([
+      Ticket.find(filter).populate(POPULATE_FIELDS).sort({ issuedAt: -1 }).skip(skip).limit(pageSize),
+      Ticket.countDocuments(filter),
+    ]);
+
+    return { data: tickets, pagination: buildMeta(totalItems) };
   }
 
-  static getTicketById(id) {
-    return TicketModel.findById(id);
+  static async getTicketById(id) {
+    if (!id) return null;
+    return Ticket.findById(id).populate(POPULATE_FIELDS).catch(() => null);
   }
 
-  static getTicketByNumber(ticketNumber) {
-    return TicketModel.findByNumber(ticketNumber);
+  static async getTicketByNumber(ticketNumber) {
+    if (!ticketNumber) return null;
+    return Ticket.findOne({ ticketNumber: ticketNumber.trim().toUpperCase() }).populate(POPULATE_FIELDS);
+  }
+
+  static async resolveTicket(idOrNumber) {
+    const byId = await this.getTicketById(idOrNumber);
+    if (byId) return byId;
+    return this.getTicketByNumber(idOrNumber);
   }
 
   static async issueTicket(data, issuingUser, req) {
-    // 1. Resolve or create vehicle
-    const plate = data.plateNumber.trim().toUpperCase();
-    const state = (data.state || 'CA').trim().toUpperCase();
-    let vehicle = VehicleModel.findByPlate(plate, state);
+    const vehicle = await resolveVehicle(data);
 
-    if (!vehicle) {
-      vehicle = VehicleModel.create({
-        plateNumber: plate,
-        state,
-        make: data.vehicleMake || 'Unknown Make',
-        model: data.vehicleModel || 'Unknown Model',
-        color: data.vehicleColor || 'Unspecified',
-        ownerName: data.ownerName || 'Vehicle Registrant',
-        ownerEmail: data.ownerEmail || null,
-        ownerPhone: data.ownerPhone || null
-      });
-    }
-
-    // 2. Resolve violation & zone
-    const violation = ViolationModel.findById(data.violationId) || ViolationModel.findByCode(data.violationCode);
+    const violation = await ViolationService.resolveViolation(data.violationId || data.violationCode);
     if (!violation) {
-      throw new Error(`Invalid violation specified: ${data.violationId || data.violationCode}`);
+      throw ApiError.badRequest(`Invalid violation specified: ${data.violationId || data.violationCode}`);
+    }
+    if (!violation.isActive) {
+      throw ApiError.badRequest(`Violation code ${violation.code} is retired and can no longer be cited.`);
     }
 
-    const zone = ParkingZoneModel.findById(data.zoneId) || ParkingZoneModel.findAll()[0];
+    let zone = null;
+    if (data.zoneId) {
+      zone = await ParkingZone.findById(data.zoneId).catch(() => null);
+    }
+    if (!zone) {
+      throw ApiError.badRequest('A valid parking zone must be specified.');
+    }
 
-    // 3. Compute fine
     const fineDetails = calculateFine({
       baseFine: violation.baseFine,
-      zoneMultiplier: zone?.multiplier || 1.0,
+      zoneMultiplier: zone.multiplier,
       lateFee: violation.lateFee,
       isOverdue: false,
-      points: violation.points || 0
     });
 
-    // 4. Calculate due date (14 days default)
     const issuedAt = new Date();
     const dueDate = new Date(issuedAt.getTime() + (violation.gracePeriodDays || 14) * 24 * 60 * 60 * 1000);
+    const ticketNumber = await generateUniqueTicketNumber();
 
-    const ticketNumber = generateTicketNumber();
-
-    const ticket = TicketModel.create({
+    const ticket = await Ticket.create({
       ticketNumber,
-      plateNumber: plate,
-      state,
-      vehicleId: vehicle.id,
-      violationId: violation.id,
+      vehicle: vehicle._id,
+      plateNumber: vehicle.plateNumber,
+      state: vehicle.state,
+      violation: violation._id,
       violationCode: violation.code,
       violationTitle: violation.name,
-      zoneId: zone?.id || 'zone-01',
-      zoneName: zone?.name || 'Metropolitan Enforcement District',
+      violationSeverity: violation.severity,
+      zone: zone._id,
+      zoneName: zone.name,
       locationDescription: data.locationDescription,
-      officerId: issuingUser?.id || 'usr-officer-01',
-      officerName: issuingUser?.name || 'Elena Rostova',
-      officerBadge: issuingUser?.badgeNumber || 'EO-4421',
-      fineAmount: fineDetails.baseFine,
-      lateFee: fineDetails.lateFee,
+      latitude: data.latitude,
+      longitude: data.longitude,
+      officer: issuingUser._id,
+      officerName: issuingUser.name,
+      officerBadge: issuingUser.badgeNumber,
+      baseFine: fineDetails.baseFine,
+      lateFee: 0,
       totalDue: fineDetails.baseFine,
-      status: 'ISSUED',
-      issuedAt: issuedAt.toISOString(),
-      dueDate: dueDate.toISOString(),
+      status: TICKET_STATUS.ISSUED,
+      issuedAt,
+      dueDate,
       notes: data.notes || '',
-      evidencePhotos: data.evidencePhotos || [
-        'https://images.unsplash.com/photo-1506521781263-d8422e82f27a?w=600&auto=format&fit=crop&q=80'
-      ]
+      evidencePhotos: data.evidencePhotos || [],
     });
 
-    // Audit and notify
     await AuditService.log({
       user: issuingUser,
       action: 'TICKET_CREATED',
       entityType: 'TICKET',
-      entityId: ticket.id,
-      details: `Issued citation ${ticket.ticketNumber} to ${plate} (${state}) for ${violation.name} ($${fineDetails.baseFine})`,
-      req
+      entityId: ticket._id,
+      details: `Issued citation ${ticket.ticketNumber} to ${vehicle.plateNumber} (${vehicle.state}) for ${violation.name} ($${fineDetails.baseFine}).`,
+      req,
     });
 
     NotificationService.sendTicketNotice(ticket, vehicle);
 
-    return ticket;
+    return this.getTicketById(ticket._id);
   }
 
-  static async disputeTicket(id, disputeData, user, req) {
-    const ticket = TicketModel.findById(id);
-    if (!ticket) throw new Error('Ticket citation not found');
+  static async disputeTicket(id, { disputeReason, evidence }, user, req) {
+    const ticket = await Ticket.findById(id);
+    if (!ticket) throw ApiError.notFound('Ticket citation not found.');
 
-    if (ticket.status === 'PAID' || ticket.status === 'VOID') {
-      throw new Error(`Cannot dispute citation with status [${ticket.status}]`);
+    if ([TICKET_STATUS.PAID, TICKET_STATUS.VOID].includes(ticket.status)) {
+      throw ApiError.badRequest(`Cannot dispute a citation with status [${ticket.status}].`);
     }
 
-    const updated = TicketModel.update(id, {
-      status: 'DISPUTED',
-      disputeReason: disputeData.disputeReason,
-      disputeDate: new Date().toISOString(),
-      disputeEvidence: disputeData.disputeEvidence || []
-    });
+    ticket.status = TICKET_STATUS.DISPUTED;
+    ticket.dispute = {
+      reason: disputeReason,
+      evidence: evidence || [],
+      submittedAt: new Date(),
+      status: 'PENDING',
+    };
+    await ticket.save();
 
     await AuditService.log({
       user,
       action: 'DISPUTE_FILED',
       entityType: 'TICKET',
-      entityId: id,
-      details: `Dispute requested for ${ticket.ticketNumber}: "${disputeData.disputeReason.slice(0, 50)}..."`,
-      req
+      entityId: ticket._id,
+      details: `Dispute filed for ${ticket.ticketNumber}: "${disputeReason.slice(0, 80)}"`,
+      req,
     });
 
-    return updated;
+    return this.getTicketById(ticket._id);
   }
 
   static async resolveDispute(id, { decision, resolutionNotes }, user, req) {
-    const ticket = TicketModel.findById(id);
-    if (!ticket) throw new Error('Ticket citation not found');
-
-    let newStatus = 'ISSUED';
-    let totalDue = ticket.fineAmount;
-
-    if (decision === 'UPHELD_VOID') {
-      newStatus = 'VOID';
-      totalDue = 0;
-    } else if (decision === 'REDUCED_FINE') {
-      totalDue = Math.round(ticket.fineAmount * 0.5 * 100) / 100;
-      newStatus = 'ISSUED';
-    } else {
-      // REJECTED
-      newStatus = 'ISSUED';
+    const ticket = await Ticket.findById(id);
+    if (!ticket) throw ApiError.notFound('Ticket citation not found.');
+    if (ticket.status !== TICKET_STATUS.DISPUTED) {
+      throw ApiError.badRequest('This citation does not have an active dispute to resolve.');
     }
 
-    const updated = TicketModel.update(id, {
-      status: newStatus,
-      totalDue,
-      disputeResolution: {
-        decision,
-        notes: resolutionNotes,
-        resolvedBy: user?.name,
-        resolvedAt: new Date().toISOString()
-      }
-    });
+    if (decision === 'UPHELD_VOID') {
+      ticket.status = TICKET_STATUS.VOID;
+      ticket.totalDue = 0;
+    } else if (decision === 'REDUCED_FINE') {
+      ticket.totalDue = Math.round(ticket.baseFine * 0.5 * 100) / 100;
+      ticket.status = TICKET_STATUS.ISSUED;
+    } else {
+      // REJECTED — dispute denied, original fine stands.
+      ticket.totalDue = ticket.baseFine + (ticket.lateFee || 0);
+      ticket.status = TICKET_STATUS.ISSUED;
+    }
+
+    ticket.dispute.status = decision;
+    ticket.dispute.decision = decision;
+    ticket.dispute.resolutionNotes = resolutionNotes;
+    ticket.dispute.resolvedBy = user._id;
+    ticket.dispute.resolvedAt = new Date();
+    await ticket.save();
 
     await AuditService.log({
       user,
       action: 'DISPUTE_RESOLVED',
       entityType: 'TICKET',
-      entityId: id,
-      details: `Supervisor resolved dispute on ${ticket.ticketNumber}: ${decision}`,
-      req
+      entityId: ticket._id,
+      details: `Dispute on ${ticket.ticketNumber} resolved: ${decision}.`,
+      req,
     });
 
-    NotificationService.sendDisputeUpdate(updated, newStatus, resolutionNotes);
-    return updated;
+    NotificationService.sendDisputeUpdate(ticket, decision);
+
+    return this.getTicketById(ticket._id);
   }
 
   static async voidTicket(id, reason, user, req) {
-    const ticket = TicketModel.findById(id);
-    if (!ticket) throw new Error('Ticket not found');
+    const ticket = await Ticket.findById(id);
+    if (!ticket) throw ApiError.notFound('Ticket not found.');
+    if (ticket.status === TICKET_STATUS.PAID) {
+      throw ApiError.badRequest('A paid citation cannot be voided; process a refund instead.');
+    }
 
-    const updated = TicketModel.update(id, {
-      status: 'VOID',
-      totalDue: 0,
-      voidReason: reason,
-      voidedBy: user?.name,
-      voidedAt: new Date().toISOString()
-    });
+    ticket.status = TICKET_STATUS.VOID;
+    ticket.totalDue = 0;
+    ticket.voidReason = reason;
+    ticket.voidedBy = user._id;
+    ticket.voidedAt = new Date();
+    await ticket.save();
 
     await AuditService.log({
       user,
       action: 'TICKET_VOIDED',
       entityType: 'TICKET',
-      entityId: id,
+      entityId: ticket._id,
       details: `Voided ticket ${ticket.ticketNumber}. Reason: ${reason}`,
-      req
+      req,
     });
 
-    return updated;
+    return this.getTicketById(ticket._id);
   }
 }
+
+export default TicketService;

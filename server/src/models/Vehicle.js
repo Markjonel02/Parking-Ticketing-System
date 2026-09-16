@@ -1,50 +1,52 @@
 // server/src/models/Vehicle.js
-import { db, Vehicle } from '../config/database.js';
+import mongoose from 'mongoose';
 
-export { Vehicle };
+const { Schema } = mongoose;
 
-export class VehicleModel {
-  static findAll(filter = {}) {
-    return db.find('vehicles', (v) => {
-      if (filter.state && v.state.toLowerCase() !== filter.state.toLowerCase()) return false;
-      if (filter.search) {
-        const q = filter.search.toLowerCase();
-        return (
-          v.plateNumber.toLowerCase().includes(q) ||
-          (v.vin && v.vin.toLowerCase().includes(q)) ||
-          (v.ownerName && v.ownerName.toLowerCase().includes(q)) ||
-          (v.make && v.make.toLowerCase().includes(q)) ||
-          (v.model && v.model.toLowerCase().includes(q))
-        );
-      }
-      return true;
-    });
-  }
+const vehicleSchema = new Schema(
+  {
+    plateNumber: {
+      type: String,
+      required: [true, 'License plate number is required'],
+      uppercase: true,
+      trim: true,
+      index: true,
+    },
+    state: {
+      type: String,
+      required: [true, 'Registration state/jurisdiction is required'],
+      uppercase: true,
+      trim: true,
+      index: true,
+    },
+    make: { type: String, trim: true },
+    model: { type: String, trim: true },
+    year: { type: Number, min: 1900, max: 2100 },
+    color: { type: String, trim: true },
+    vin: { type: String, trim: true, uppercase: true },
+    ownerName: { type: String, trim: true },
+    ownerEmail: { type: String, trim: true, lowercase: true },
+    ownerPhone: { type: String, trim: true },
+    registeredCity: { type: String, trim: true },
+  },
+  {
+    timestamps: true,
+    toJSON: {
+      virtuals: true,
+      transform: (_doc, ret) => {
+        ret.id = ret._id.toString();
+        delete ret._id;
+        delete ret.__v;
+        return ret;
+      },
+    },
+    toObject: { virtuals: true },
+  },
+);
 
-  static findById(id) {
-    return db.findById('vehicles', id);
-  }
+// A plate is unique per issuing state, not globally.
+vehicleSchema.index({ plateNumber: 1, state: 1 }, { unique: true });
+vehicleSchema.index({ ownerName: 'text', vin: 'text', make: 'text', model: 'text' });
 
-  static findByPlate(plateNumber, state = null) {
-    const cleanPlate = plateNumber.trim().toUpperCase();
-    return db.findOne('vehicles', v => {
-      const matchPlate = v.plateNumber.toUpperCase() === cleanPlate;
-      if (state) {
-        return matchPlate && v.state.toUpperCase() === state.trim().toUpperCase();
-      }
-      return matchPlate;
-    });
-  }
-
-  static create(vehicleData) {
-    return db.insert('vehicles', {
-      ...vehicleData,
-      plateNumber: vehicleData.plateNumber.trim().toUpperCase(),
-      state: (vehicleData.state || 'CA').trim().toUpperCase()
-    });
-  }
-
-  static update(id, updates) {
-    return db.update('vehicles', id, updates);
-  }
-}
+export const Vehicle = mongoose.models.Vehicle || mongoose.model('Vehicle', vehicleSchema);
+export default Vehicle;

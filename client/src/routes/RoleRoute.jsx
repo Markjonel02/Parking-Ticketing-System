@@ -2,10 +2,9 @@
 import React from 'react';
 import { useAuth } from '../hooks/useAuth.js';
 import { ShieldAlert } from 'lucide-react';
-import { Button } from '../components/common/Button.jsx';
 
 export function RoleRoute({ allowedRoles = [], children }) {
-  const { user, switchDemoRole } = useAuth();
+  const { user } = useAuth();
 
   if (!user) return null;
 
@@ -20,16 +19,10 @@ export function RoleRoute({ allowedRoles = [], children }) {
       </div>
       <h3 className="text-base font-bold text-slate-900">Restricted Authority Section</h3>
       <p className="text-xs text-slate-500 mt-1 mb-4 leading-relaxed">
-        Your current active role ({user.role}) does not possess clearance to view this module.
-        Clearance required: {allowedRoles.join(', ')}.
+        Your account role ({user.role}) does not have clearance to view this module.
+        Clearance required: {allowedRoles.join(', ')}. Contact an administrator if you believe
+        this is incorrect.
       </p>
-      <Button
-        size="sm"
-        colorScheme="brand"
-        onClick={() => switchDemoRole(allowedRoles[0] || 'ADMIN')}
-      >
-        Switch to {allowedRoles[0] || 'ADMIN'} Role
-      </Button>
     </div>
   );
 }

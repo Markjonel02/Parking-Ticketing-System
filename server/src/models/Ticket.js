@@ -1,56 +1,97 @@
 // server/src/models/Ticket.js
-import { db, Ticket } from '../config/database.js';
+import mongoose from 'mongoose';
+import { TICKET_STATUS } from '../constants/ticketStatus.js';
 
-export { Ticket };
+const { Schema } = mongoose;
 
-export class TicketModel {
-  static findAll(filter = {}) {
-    return db.find('tickets', (t) => {
-      if (filter.status && t.status !== filter.status) return false;
-      if (filter.zoneId && t.zoneId !== filter.zoneId) return false;
-      if (filter.officerId && t.officerId !== filter.officerId) return false;
-      if (filter.plateNumber && t.plateNumber.toUpperCase() !== filter.plateNumber.toUpperCase()) return false;
-      if (filter.search) {
-        const q = filter.search.toLowerCase();
-        return (
-          t.ticketNumber.toLowerCase().includes(q) ||
-          t.plateNumber.toLowerCase().includes(q) ||
-          t.violationTitle.toLowerCase().includes(q) ||
-          (t.zoneName && t.zoneName.toLowerCase().includes(q)) ||
-          (t.locationDescription && t.locationDescription.toLowerCase().includes(q)) ||
-          (t.officerName && t.officerName.toLowerCase().includes(q))
-        );
-      }
-      return true;
-    });
-  }
+const disputeSchema = new Schema(
+  {
+    reason: { type: String, trim: true },
+    evidence: [{ type: String }],
+    submittedAt: { type: Date },
+    status: { type: String, enum: ['PENDING', 'UPHELD_VOID', 'REDUCED_FINE', 'REJECTED'], default: 'PENDING' },
+    decision: { type: String },
+    resolutionNotes: { type: String, trim: true },
+    resolvedBy: { type: Schema.Types.ObjectId, ref: 'User' },
+    resolvedAt: { type: Date },
+  },
+  { _id: false },
+);
 
-  static findById(id) {
-    return db.findById('tickets', id);
-  }
+const ticketSchema = new Schema(
+  {
+    ticketNumber: {
+      type: String,
+      required: true,
+      unique: true,
+      uppercase: true,
+      trim: true,
+      index: true,
+    },
+    vehicle: { type: Schema.Types.ObjectId, ref: 'Vehicle', required: true, index: true },
+    plateNumber: { type: String, required: true, uppercase: true, trim: true, index: true },
+    state: { type: String, required: true, uppercase: true, trim: true },
 
-  static findByNumber(ticketNumber) {
-    return db.findOne('tickets', t => t.ticketNumber.toUpperCase() === ticketNumber.trim().toUpperCase());
-  }
+    violation: { type: Schema.Types.ObjectId, ref: 'Violation', required: true, index: true },
+    violationCode: { type: String, uppercase: true },
+    violationTitle: { type: String },
+    violationSeverity: { type: String },
 
-  static findByPlate(plateNumber) {
-    const cleanPlate = plateNumber.trim().toUpperCase();
-    return db.find('tickets', t => t.plateNumber.toUpperCase() === cleanPlate);
-  }
+    zone: { type: Schema.Types.ObjectId, ref: 'ParkingZone', index: true },
+    zoneName: { type: String },
+    locationDescription: { type: String, required: [true, 'Citation location is required'], trim: true },
+    latitude: { type: Number },
+    longitude: { type: Number },
 
-  static create(ticketData) {
-    return db.insert('tickets', {
-      ...ticketData,
-      status: ticketData.status || 'ISSUED',
-      issuedAt: ticketData.issuedAt || new Date().toISOString()
-    });
-  }
+    officer: { type: Schema.Types.ObjectId, ref: 'User', required: true, index: true },
+    officerName: { type: String },
+    officerBadge: { type: String },
 
-  static update(id, updates) {
-    return db.update('tickets', id, updates);
-  }
+    // Fine amounts are snapshotted at issue time so later edits to the violation schedule
+    // never retroactively change an already-issued citation.
+    baseFine: { type: Number, required: true, min: 0 },
+    lateFee: { type: Number, default: 0, min: 0 },
+    totalDue: { type: Number, required: true, min: 0 },
 
-  static delete(id) {
-    return db.delete('tickets', id);
-  }
-}
+    status: {
+      type: String,
+      enum: Object.values(TICKET_STATUS),
+      default: TICKET_STATUS.ISSUED,
+      index: true,
+    },
+
+    issuedAt: { type: Date, default: Date.now, index: true },
+    dueDate: { type: Date, required: true },
+    overdueAssessedAt: { type: Date },
+
+    paidAt: { type: Date },
+    payment: { type: Schema.Types.ObjectId, ref: 'Payment' },
+
+    voidReason: { type: String, trim: true },
+    voidedBy: { type: Schema.Types.ObjectId, ref: 'User' },
+    voidedAt: { type: Date },
+
+    notes: { type: String, trim: true },
+    evidencePhotos: [{ type: String }],
+
+    dispute: disputeSchema,
+  },
+  {
+    timestamps: true,
+    toJSON: {
+      virtuals: true,
+      transform: (_doc, ret) => {
+        ret.id = ret._id.toString();
+        delete ret._id;
+        delete ret.__v;
+        return ret;
+      },
+    },
+    toObject: { virtuals: true },
+  },
+);
+
+ticketSchema.index({ plateNumber: 'text', ticketNumber: 'text', locationDescription: 'text' });
+
+export const Ticket = mongoose.models.Ticket || mongoose.model('Ticket', ticketSchema);
+export default Ticket;
