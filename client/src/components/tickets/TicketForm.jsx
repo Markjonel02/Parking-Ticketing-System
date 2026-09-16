@@ -16,7 +16,7 @@ export function TicketForm({ isOpen, onClose, onSuccess }) {
   const { user } = useAuth();
 
   const [violations, setViolations] = useState([]);
-  const [zones, setZones] = useState([]);
+const [zones, setZones] = useState([]);
   const [isLoadingMeta, setIsLoadingMeta] = useState(true);
 
   // Form State
