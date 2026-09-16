@@ -1,14 +1,20 @@
 // client/src/pages/tickets/Tickets.jsx
-import React, { useState, useEffect } from 'react';
-import { TicketTable } from '../../components/tickets/TicketTable.jsx';
-import { TicketDetails } from '../../components/tickets/TicketDetails.jsx';
-import { TicketForm } from '../../components/tickets/TicketForm.jsx';
-import { useTickets } from '../../hooks/useTickets.js';
-import { Button } from '../../components/common/Button.jsx';
-import { Pagination } from '../../components/common/Pagination.jsx';
-import { useAppContext } from '../../context/AppContext.jsx';
-import { useAuth } from '../../hooks/useAuth.js';
-import { Search, PlusCircle, Filter, RotateCw, Ticket as TicketIcon } from 'lucide-react';
+import React, { useState, useEffect } from "react";
+import { TicketTable } from "../../components/tickets/TicketTable.jsx";
+import { TicketDetails } from "../../components/tickets/TicketDetails.jsx";
+import { TicketForm } from "../../components/tickets/TicketForm.jsx";
+import { useTickets } from "../../hooks/useTickets.js";
+import { Button } from "../../components/common/Button.jsx";
+import { Pagination } from "../../components/common/Pagination.jsx";
+import { useAppContext } from "../../context/AppContext.jsx";
+import { useAuth } from "../../hooks/useAuth.js";
+import {
+  Search,
+  PlusCircle,
+  Filter,
+  RotateCw,
+  Ticket as TicketIcon,
+} from "lucide-react";
 
 export function Tickets() {
   const {
@@ -17,28 +23,22 @@ export function Tickets() {
     selectedTicketId,
     setSelectedTicketId,
     setQuickPayTicket,
-    setIsQuickPayOpen
+    setIsQuickPayOpen,
   } = useAppContext();
   const { user } = useAuth();
 
-  const [activeStatus, setActiveStatus] = useState('');
-  const [searchInput, setSearchInput] = useState('');
+  const [activeStatus, setActiveStatus] = useState("");
+  const [searchInput, setSearchInput] = useState("");
   const [selectedTicket, setSelectedTicket] = useState(null);
 
-  const {
-    tickets,
-    pagination,
-    isLoading,
-    filter,
-    setFilter,
-    refetch
-  } = useTickets({ page: 1, limit: 10 });
+  const { tickets, pagination, isLoading, filter, setFilter, refetch } =
+    useTickets({ page: 1, limit: 10 });
 
   // Handle auto-selected ticket from search or external link
   useEffect(() => {
     if (selectedTicketId && tickets.length > 0) {
       const match = tickets.find(
-        (t) => t.id === selectedTicketId || t.ticketNumber === selectedTicketId
+        (t) => t.id === selectedTicketId || t.ticketNumber === selectedTicketId,
       );
       if (match) setSelectedTicket(match);
     }
@@ -55,18 +55,18 @@ export function Tickets() {
   }
 
   function handleResetFilters() {
-    setActiveStatus('');
-    setSearchInput('');
+    setActiveStatus("");
+    setSearchInput("");
     setFilter({ page: 1, limit: 10 });
   }
 
   const statuses = [
-    { id: '', label: 'All Citations' },
-    { id: 'ISSUED', label: 'Active / Issued' },
-    { id: 'OVERDUE', label: 'Overdue / Delinquent' },
-    { id: 'PAID', label: 'Paid in Full' },
-    { id: 'DISPUTED', label: 'In Dispute' },
-    { id: 'VOID', label: 'Voided / Dismissed' }
+    { id: "", label: "All Citations" },
+    { id: "ISSUED", label: "Active / Issued" },
+    { id: "OVERDUE", label: "Overdue / Delinquent" },
+    { id: "PAID", label: "Paid in Full" },
+    { id: "DISPUTED", label: "In Dispute" },
+    { id: "VOID", label: "Voided / Dismissed" },
   ];
 
   return (
@@ -75,11 +75,11 @@ export function Tickets() {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h2 className="text-xl font-bold text-slate-900 tracking-tight flex items-center gap-2">
-            <TicketIcon className="w-5 h-5 text-blue-600" />
             Citations & Tickets
           </h2>
           <p className="text-xs text-slate-500 mt-0.5">
-            Municipal infraction records, court disputes, and payment settlements
+            Municipal infraction records, court disputes, and payment
+            settlements
           </p>
         </div>
 
@@ -112,8 +112,8 @@ export function Tickets() {
               onClick={() => handleStatusChange(s.id)}
               className={`px-3 py-1.5 rounded-lg font-medium whitespace-nowrap transition-colors cursor-pointer ${
                 activeStatus === s.id
-                  ? 'bg-blue-600 text-white font-semibold shadow-xs'
-                  : 'text-slate-600 hover:bg-slate-100'
+                  ? "bg-blue-600 text-white font-semibold shadow-xs"
+                  : "text-slate-600 hover:bg-slate-100"
               }`}
             >
               {s.label}
@@ -122,7 +122,10 @@ export function Tickets() {
         </div>
 
         {/* Search & Reset */}
-        <form onSubmit={handleSearchSubmit} className="flex flex-col sm:flex-row gap-2 pt-1 border-t border-slate-100">
+        <form
+          onSubmit={handleSearchSubmit}
+          className="flex flex-col sm:flex-row gap-2 pt-1 border-t border-slate-100"
+        >
           <div className="relative flex-1">
             <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
             <input
@@ -138,7 +141,12 @@ export function Tickets() {
               Search
             </Button>
             {(activeStatus || searchInput) && (
-              <Button size="sm" variant="ghost" colorScheme="gray" onClick={handleResetFilters}>
+              <Button
+                size="sm"
+                variant="ghost"
+                colorScheme="gray"
+                onClick={handleResetFilters}
+              >
                 Clear
               </Button>
             )}

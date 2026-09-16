@@ -109,7 +109,7 @@ export function Violations() {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h2 className="text-xl font-bold text-slate-900 tracking-tight flex items-center gap-2">
-            <AlertOctagon className="w-5 h-5 text-red-600" />
+     
             Municipal Infraction Codes
           </h2>
           <p className="text-xs text-slate-500 mt-0.5">
