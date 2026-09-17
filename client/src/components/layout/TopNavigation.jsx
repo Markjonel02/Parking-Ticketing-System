@@ -8,7 +8,8 @@ import {
   ShieldCheck,
   CheckCircle2,
   Car,
-  FileText
+  FileText,
+  LogOut
 } from 'lucide-react';
 import { useAppContext } from '../../context/AppContext.jsx';
 import { useAuth } from '../../hooks/useAuth.js';
@@ -16,9 +17,20 @@ import { Button } from '../common/Button.jsx';
 
 export function TopNavigation() {
   const { setIsMobileNavOpen, triggerRefresh, navigateTo } = useAppContext();
-  const { user } = useAuth();
+  const { user, logout } = useAuth();
   const [searchQuery, setSearchQuery] = useState('');
   const [isSearching, setIsSearching] = useState(false);
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
+
+  async function handleLogout() {
+    if (isLoggingOut) return;
+    setIsLoggingOut(true);
+    try {
+      await logout();
+    } finally {
+      setIsLoggingOut(false);
+    }
+  }
 
   function handleQuickSearch(e) {
     e.preventDefault();
@@ -105,6 +117,17 @@ export function TopNavigation() {
             <span className="text-[10px] font-medium text-slate-500">{user?.role || 'Guest'}</span>
           </div>
         </div>
+
+        {/* Logout */}
+        <button
+          onClick={handleLogout}
+          disabled={isLoggingOut}
+          title="Log out"
+          aria-label="Log out"
+          className="p-2 text-slate-500 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          <LogOut className="w-4 h-4" />
+        </button>
       </div>
     </header>
   );

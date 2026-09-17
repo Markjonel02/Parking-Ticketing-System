@@ -1,10 +1,29 @@
 // client/src/context/AppContext.jsx
-import React, { createContext, useContext, useState, useCallback } from 'react';
+import React, { createContext, useContext, useState, useCallback, useEffect } from 'react';
 
 export const AppContext = createContext(null);
 
+// Tabs that AppRoutes.jsx knows how to render — kept here so the URL can be
+// initialized/synced against a known-good list instead of trusting any path.
+export const KNOWN_TABS = [
+  'dashboard',
+  'tickets',
+  'vehicles',
+  'payments',
+  'violations',
+  'reports',
+  'users',
+  'settings'
+];
+
+function getInitialTab() {
+  if (typeof window === 'undefined') return 'dashboard';
+  const path = window.location.pathname.replace(/^\/+/, '');
+  return KNOWN_TABS.includes(path) ? path : 'dashboard';
+}
+
 export function AppProvider({ children }) {
-  const [activeTab, setActiveTab] = useState('dashboard');
+  const [activeTab, setActiveTab] = useState(getInitialTab);
   const [isMobileNavOpen, setIsMobileNavOpen] = useState(false);
   const [selectedTicketId, setSelectedTicketId] = useState(null);
   const [selectedVehiclePlate, setSelectedVehiclePlate] = useState(null);
@@ -32,12 +51,31 @@ export function AppProvider({ children }) {
     setRefreshKey((k) => k + 1);
   }, []);
 
+  // Keep activeTab in sync when the user navigates with the browser's
+  // Back/Forward buttons (navigateTo pushes a history entry per tab).
+  useEffect(() => {
+    function handlePopState() {
+      const path = window.location.pathname.replace(/^\/+/, '');
+      if (KNOWN_TABS.includes(path)) {
+        setActiveTab(path);
+      }
+    }
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, []);
+
   const navigateTo = useCallback((tab, options = {}) => {
     setActiveTab(tab);
     if (options.ticketId) setSelectedTicketId(options.ticketId);
     if (options.plate) setSelectedVehiclePlate(options.plate);
     setIsMobileNavOpen(false);
     window.scrollTo({ top: 0, behavior: 'smooth' });
+    if (typeof window !== 'undefined') {
+      const path = `/${tab}`;
+      if (window.location.pathname !== path) {
+        window.history.pushState({}, '', path);
+      }
+    }
   }, []);
 
   const value = {
