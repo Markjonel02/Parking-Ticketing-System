@@ -74,10 +74,29 @@ export class UserController {
     const user = await User.findById(req.params.id);
     if (!user) throw ApiError.notFound('User not found.');
 
+    const wasActiveAdmin = user.role === 'ADMIN' && user.status === 'ACTIVE';
+
     Object.assign(user, rest);
     if (password) {
       user.password = password; // re-hashed by pre-save hook
     }
+
+    // updateUser can also change role/status directly (e.g. from an edit
+    // form), which would otherwise bypass the same guard in toggleStatus.
+    const willBeActiveAdmin = user.role === 'ADMIN' && user.status === 'ACTIVE';
+    if (wasActiveAdmin && !willBeActiveAdmin) {
+      const otherActiveAdmins = await User.countDocuments({
+        role: 'ADMIN',
+        status: 'ACTIVE',
+        _id: { $ne: user._id },
+      });
+      if (otherActiveAdmins === 0) {
+        throw ApiError.conflict(
+          'Cannot change the role or status of the last active administrator account. Promote another staff member to ADMIN first.'
+        );
+      }
+    }
+
     await user.save();
 
     await AuditService.log({
@@ -96,7 +115,25 @@ export class UserController {
     const user = await User.findById(req.params.id);
     if (!user) throw ApiError.notFound('User not found.');
 
-    user.status = user.status === 'ACTIVE' ? 'SUSPENDED' : 'ACTIVE';
+    const nextStatus = user.status === 'ACTIVE' ? 'SUSPENDED' : 'ACTIVE';
+
+    // Never allow the system to end up with zero active admins — that
+    // would lock everyone out of admin-only actions (staff management,
+    // reports, etc.) with no way back in short of a direct DB edit.
+    if (nextStatus === 'SUSPENDED' && user.role === 'ADMIN') {
+      const otherActiveAdmins = await User.countDocuments({
+        role: 'ADMIN',
+        status: 'ACTIVE',
+        _id: { $ne: user._id },
+      });
+      if (otherActiveAdmins === 0) {
+        throw ApiError.conflict(
+          'Cannot suspend the last active administrator account. Promote another staff member to ADMIN first.'
+        );
+      }
+    }
+
+    user.status = nextStatus;
     await user.save();
 
     await AuditService.log({

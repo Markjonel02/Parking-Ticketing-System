@@ -19,7 +19,7 @@ import {
   ArrowRight,
   MapPin,
 } from "lucide-react";
-
+import axios from "axios";
 /**
  * Admin-only landing dashboard. Rendered instead of the standard staff
  * Dashboard whenever the authenticated user's role (verified by the
@@ -42,27 +42,25 @@ export function AdminDashboard() {
       try {
         const [statsRes, usersRes] = await Promise.all([
           reportApi.getDashboardStats(),
-          userApi.getUsers({ limit: 200 }),
+          userApi.getAllUsers(),
         ]);
 
         if (cancelled) return;
 
         if (statsRes.success) setStats(statsRes.data);
 
-        if (usersRes.success) {
-          const users = usersRes.data || [];
-          const byRole = users.reduce((acc, u) => {
-            acc[u.role] = (acc[u.role] || 0) + 1;
-            return acc;
-          }, {});
-          const activeCount = users.filter((u) => u.status === "ACTIVE").length;
-          setUserSummary({
-            total: usersRes.pagination?.totalItems ?? users.length,
-            byRole,
-            activeCount,
-            suspendedCount: users.length - activeCount,
-          });
-        }
+        const users = usersRes.data || [];
+        const byRole = users.reduce((acc, u) => {
+          acc[u.role] = (acc[u.role] || 0) + 1;
+          return acc;
+        }, {});
+        const activeCount = users.filter((u) => u.status === "ACTIVE").length;
+        setUserSummary({
+          total: usersRes.pagination?.totalItems ?? users.length,
+          byRole,
+          activeCount,
+          suspendedCount: users.length - activeCount,
+        });
       } catch (err) {
         console.error("Failed to load admin dashboard data", err);
       } finally {
