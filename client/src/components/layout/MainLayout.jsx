@@ -85,11 +85,7 @@ export function MainLayout({ children }) {
         })}
       </div>
 
-      {/* Logout confirmation — rendered here (not inside TopNavigation) so
-          it isn't nested under the header's backdrop-blur. backdrop-filter
-          creates a new containing block for position:fixed descendants,
-          which was clipping the dialog to the header's box instead of the
-          full viewport. */}
+      {/* Logout Confirmation Dialog */}
       <ConfirmDialog
         isOpen={isLogoutConfirmOpen}
         onClose={() => setIsLogoutConfirmOpen(false)}
