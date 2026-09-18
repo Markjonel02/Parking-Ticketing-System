@@ -13,6 +13,7 @@ import {
   ShieldCheck,
   UserCheck,
   UserX,
+  Lock,
 } from "lucide-react";
 
 export function Users() {
@@ -36,7 +37,7 @@ export function Users() {
   async function loadUsers() {
     setIsLoading(true);
     try {
-      const res = await userApi.getUsers();
+      const res = await userApi.getAllUsers();
       if (res.success) {
         setUsers(res.data || []);
       }
@@ -118,6 +119,10 @@ export function Users() {
     CITIZEN: "text-blue-800 ",
   };
 
+  const activeAdminCount = users.filter(
+    (u) => u.role === "ADMIN" && u.status === "ACTIVE",
+  ).length;
+
   const columns = [
     {
       header: "Staff Member",
@@ -185,21 +190,33 @@ export function Users() {
       header: "Actions",
       key: "actions",
       align: "right",
-      render: (u) => (
-        <div
-          className="flex justify-end gap-1.5"
-          onClick={(e) => e.stopPropagation()}
-        >
-          <Button
-            size="xs"
-            variant="outline"
-            colorScheme={u.status === "ACTIVE" ? "red" : "teal"}
-            onClick={() => handleToggleStatus(u)}
+      render: (u) => {
+        const isLastActiveAdmin =
+          u.role === "ADMIN" && u.status === "ACTIVE" && activeAdminCount <= 1;
+
+        return (
+          <div
+            className="flex justify-end gap-1.5"
+            onClick={(e) => e.stopPropagation()}
           >
-            {u.status === "ACTIVE" ? "Suspend" : "Activate"}
-          </Button>
-        </div>
-      ),
+            <Button
+              size="xs"
+              variant="outline"
+              colorScheme={u.status === "ACTIVE" ? "red" : "teal"}
+              onClick={() => handleToggleStatus(u)}
+              isDisabled={isLastActiveAdmin}
+              title={
+                isLastActiveAdmin
+                  ? "Cannot suspend the last active administrator"
+                  : undefined
+              }
+              leftIcon={isLastActiveAdmin ? <Lock className="w-3 h-3" /> : undefined}
+            >
+              {u.status === "ACTIVE" ? "Suspend" : "Activate"}
+            </Button>
+          </div>
+        );
+      },
     },
   ];
 

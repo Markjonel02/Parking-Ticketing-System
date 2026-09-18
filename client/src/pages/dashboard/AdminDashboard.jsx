@@ -37,53 +37,26 @@ export function AdminDashboard() {
   useEffect(() => {
     let cancelled = false;
 
-    // The server caps `limit` at 100 per request (server/src/utils/pagination.js),
-    // so a single call can silently under-report staff counts once there are
-    // more than 100 accounts. Page through GET /users via axios (userApi wraps
-    // the shared axiosInstance, which is axios — it already attaches the
-    // bearer token and the /api base URL, so this stays consistent with the
-    // rest of the app instead of a bare axios call) until every real record
-    // from the database has been collected — no seed/mock data involved.
-    async function fetchAllUsers() {
-      const PAGE_SIZE = 100;
-      const MAX_PAGES = 50; // safety cap: 5,000 users, well beyond realistic staff counts
-      let page = 1;
-      let all = [];
-      let totalItems = 0;
-
-      while (page <= MAX_PAGES) {
-        const res = await userApi.getUsers({ page, limit: PAGE_SIZE });
-        if (!res.success) break;
-
-        all = all.concat(res.data || []);
-        totalItems = res.pagination?.totalItems ?? all.length;
-
-        if (!res.pagination?.hasNextPage) break;
-        page += 1;
-      }
-
-      return { users: all, totalItems };
-    }
-
     async function loadAdminOverview() {
       setIsLoading(true);
       try {
-        const [statsRes, { users, totalItems }] = await Promise.all([
+        const [statsRes, usersRes] = await Promise.all([
           reportApi.getDashboardStats(),
-          fetchAllUsers(),
+          userApi.getAllUsers(),
         ]);
 
         if (cancelled) return;
 
         if (statsRes.success) setStats(statsRes.data);
 
+        const users = usersRes.data || [];
         const byRole = users.reduce((acc, u) => {
           acc[u.role] = (acc[u.role] || 0) + 1;
           return acc;
         }, {});
         const activeCount = users.filter((u) => u.status === "ACTIVE").length;
         setUserSummary({
-          total: totalItems,
+          total: usersRes.pagination?.totalItems ?? users.length,
           byRole,
           activeCount,
           suspendedCount: users.length - activeCount,
