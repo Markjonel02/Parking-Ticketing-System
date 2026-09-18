@@ -14,6 +14,7 @@ import {
 import { useAppContext } from '../../context/AppContext.jsx';
 import { useAuth } from '../../hooks/useAuth.js';
 import { Button } from '../common/Button.jsx';
+import { ConfirmDialog } from '../common/ConfirmDialog.jsx';
 
 export function TopNavigation() {
   const { setIsMobileNavOpen, triggerRefresh, navigateTo } = useAppContext();
@@ -21,6 +22,7 @@ export function TopNavigation() {
   const [searchQuery, setSearchQuery] = useState('');
   const [isSearching, setIsSearching] = useState(false);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
+  const [isLogoutConfirmOpen, setIsLogoutConfirmOpen] = useState(false);
 
   async function handleLogout() {
     if (isLoggingOut) return;
@@ -29,6 +31,7 @@ export function TopNavigation() {
       await logout();
     } finally {
       setIsLoggingOut(false);
+      setIsLogoutConfirmOpen(false);
     }
   }
 
@@ -120,15 +123,27 @@ export function TopNavigation() {
 
         {/* Logout */}
         <button
-          onClick={handleLogout}
-          disabled={isLoggingOut}
+          onClick={() => setIsLogoutConfirmOpen(true)}
           title="Log out"
           aria-label="Log out"
-          className="p-2 text-slate-500 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+          className="p-2 text-slate-500 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors cursor-pointer"
         >
           <LogOut className="w-4 h-4" />
         </button>
       </div>
+
+      <ConfirmDialog
+        isOpen={isLogoutConfirmOpen}
+        onClose={() => setIsLogoutConfirmOpen(false)}
+        onConfirm={handleLogout}
+        title="Log Out"
+        message="Are you sure you want to log out of ParkGuard?"
+        confirmText="Yes, Log Out"
+        cancelText="Cancel"
+        colorScheme="red"
+        type="warning"
+        isLoading={isLoggingOut}
+      />
     </header>
   );
 }
