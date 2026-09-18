@@ -4,6 +4,7 @@ import { userApi } from "../../services/api/userApi.js";
 import { DataTable } from "../../components/common/DataTable.jsx";
 import { Button } from "../../components/common/Button.jsx";
 import { Modal } from "../../components/common/Modal.jsx";
+import { ConfirmDialog } from "../../components/common/ConfirmDialog.jsx";
 import { formatDate } from "../../utils/formatDate.js";
 import { useAppContext } from "../../context/AppContext.jsx";
 import { useAuth } from "../../hooks/useAuth.js";
@@ -23,6 +24,8 @@ export function Users() {
   const [users, setUsers] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isCreateOpen, setIsCreateOpen] = useState(false);
+  const [statusConfirmTarget, setStatusConfirmTarget] = useState(null);
+  const [isTogglingStatus, setIsTogglingStatus] = useState(false);
 
   // New user form state
   const [formData, setFormData] = useState({
@@ -60,6 +63,7 @@ export function Users() {
           title: "Status Updated",
           description: `${targetUser.name} is now ${res.data.status}.`,
           status: "success",
+          duration: 2000,
         });
         loadUsers();
       }
@@ -69,6 +73,17 @@ export function Users() {
         description: err.message,
         status: "error",
       });
+    }
+  }
+
+  async function confirmToggleStatus() {
+    if (!statusConfirmTarget || isTogglingStatus) return;
+    setIsTogglingStatus(true);
+    try {
+      await handleToggleStatus(statusConfirmTarget);
+    } finally {
+      setIsTogglingStatus(false);
+      setStatusConfirmTarget(null);
     }
   }
 
@@ -203,7 +218,7 @@ export function Users() {
               size="xs"
               variant="outline"
               colorScheme={u.status === "ACTIVE" ? "red" : "teal"}
-              onClick={() => handleToggleStatus(u)}
+              onClick={() => setStatusConfirmTarget(u)}
               isDisabled={isLastActiveAdmin}
               title={
                 isLastActiveAdmin
@@ -246,6 +261,32 @@ export function Users() {
 
       {/* Users DataTable */}
       <DataTable columns={columns} data={users} isLoading={isLoading} />
+
+      {/* Suspend / Activate confirmation */}
+      <ConfirmDialog
+        isOpen={!!statusConfirmTarget}
+        onClose={() => setStatusConfirmTarget(null)}
+        onConfirm={confirmToggleStatus}
+        title={
+          statusConfirmTarget?.status === "ACTIVE"
+            ? "Suspend Staff Member"
+            : "Activate Staff Member"
+        }
+        message={
+          statusConfirmTarget
+            ? `Are you sure you want to ${
+                statusConfirmTarget.status === "ACTIVE" ? "suspend" : "activate"
+              } ${statusConfirmTarget.name}?`
+            : ""
+        }
+        confirmText={
+          statusConfirmTarget?.status === "ACTIVE" ? "Yes, Suspend" : "Yes, Activate"
+        }
+        cancelText="Cancel"
+        colorScheme={statusConfirmTarget?.status === "ACTIVE" ? "red" : "teal"}
+        type={statusConfirmTarget?.status === "ACTIVE" ? "warning" : "info"}
+        isLoading={isTogglingStatus}
+      />
 
       {/* Create Officer Modal */}
       <Modal
