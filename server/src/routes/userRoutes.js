@@ -10,6 +10,7 @@ import { ROLES } from '../constants/roles.js';
 export const userRoutes = Router();
 
 userRoutes.get('/', authenticate, UserController.getUsers);
+userRoutes.get('/next-badge', authenticate, requireRoles(ROLES.ADMIN), UserController.previewBadgeNumber);
 userRoutes.get('/:id', authenticate, UserController.getUserById);
 userRoutes.post('/', authenticate, requireRoles(ROLES.ADMIN), validateRequest(validateUser), UserController.createUser);
 userRoutes.put('/:id', authenticate, requireRoles(ROLES.ADMIN), UserController.updateUser);

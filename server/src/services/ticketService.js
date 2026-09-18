@@ -28,15 +28,34 @@ function buildFilter({ status, zoneId, officerId, plateNumber, search }) {
   return filter;
 }
 
-async function resolveVehicle({ plateNumber, state, vehicleMake, vehicleModel, vehicleColor, ownerName, ownerEmail, ownerPhone }) {
+async function resolveVehicle({
+  plateNumber,
+  province,
+  provinceCode,
+  municipality,
+  municipalityCode,
+  barangay,
+  barangayCode,
+  vehicleMake,
+  vehicleModel,
+  vehicleColor,
+  ownerName,
+  ownerEmail,
+  ownerPhone
+}) {
   const plate = plateNumber.trim().toUpperCase();
-  const registrationState = (state || 'CA').trim().toUpperCase();
+  const registrationProvince = (province || 'Metro Manila').trim();
 
-  let vehicle = await Vehicle.findOne({ plateNumber: plate, state: registrationState });
+  let vehicle = await Vehicle.findOne({ plateNumber: plate, province: registrationProvince });
   if (!vehicle) {
     vehicle = await Vehicle.create({
       plateNumber: plate,
-      state: registrationState,
+      province: registrationProvince,
+      provinceCode,
+      municipality,
+      municipalityCode,
+      barangay,
+      barangayCode,
       make: vehicleMake || 'Unknown Make',
       model: vehicleModel || 'Unknown Model',
       color: vehicleColor || 'Unspecified',
@@ -122,7 +141,12 @@ export class TicketService {
       ticketNumber,
       vehicle: vehicle._id,
       plateNumber: vehicle.plateNumber,
-      state: vehicle.state,
+      province: vehicle.province,
+      provinceCode: vehicle.provinceCode,
+      municipality: vehicle.municipality,
+      municipalityCode: vehicle.municipalityCode,
+      barangay: vehicle.barangay,
+      barangayCode: vehicle.barangayCode,
       violation: violation._id,
       violationCode: violation.code,
       violationTitle: violation.name,
@@ -150,7 +174,7 @@ export class TicketService {
       action: 'TICKET_CREATED',
       entityType: 'TICKET',
       entityId: ticket._id,
-      details: `Issued citation ${ticket.ticketNumber} to ${vehicle.plateNumber} (${vehicle.state}) for ${violation.name} ($${fineDetails.baseFine}).`,
+      details: `Issued citation ${ticket.ticketNumber} to ${vehicle.plateNumber} (${vehicle.province}) for ${violation.name} ($${fineDetails.baseFine}).`,
       req,
     });
 

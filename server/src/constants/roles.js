@@ -7,6 +7,17 @@ export const ROLES = {
   CITIZEN: 'CITIZEN'
 };
 
+// Prefix each role's badge/shield ID is issued with. New users are always
+// auto-numbered as PREFIX-0001, PREFIX-0002, ... in creation order — see
+// server/src/utils/badgeNumber.js.
+export const BADGE_PREFIXES = {
+  ADMIN: 'AD',
+  SUPERVISOR: 'SV',
+  OFFICER: 'EO',
+  CASHIER: 'CS',
+  CITIZEN: 'CI',
+};
+
 export const ROLE_PERMISSIONS = {
   ADMIN: ['all'],
   SUPERVISOR: ['tickets:read', 'tickets:write', 'tickets:void', 'tickets:dispute', 'payments:read', 'reports:read', 'users:read', 'violations:read', 'violations:write'],

@@ -12,13 +12,21 @@ const vehicleSchema = new Schema(
       trim: true,
       index: true,
     },
-    state: {
+    // Philippine address of registration: Province -> Municipality/City ->
+    // Barangay, backed by the official PSGC dataset on the client. The
+    // *Code fields hold the PSGC code (10-digit) when the value was chosen
+    // from the cascading select, so the record can be re-resolved later.
+    province: {
       type: String,
-      required: [true, 'Registration state/jurisdiction is required'],
-      uppercase: true,
+      required: [true, 'Province is required'],
       trim: true,
       index: true,
     },
+    provinceCode: { type: String, trim: true },
+    municipality: { type: String, trim: true },
+    municipalityCode: { type: String, trim: true },
+    barangay: { type: String, trim: true },
+    barangayCode: { type: String, trim: true },
     make: { type: String, trim: true },
     model: { type: String, trim: true },
     year: { type: Number, min: 1900, max: 2100 },
@@ -44,8 +52,8 @@ const vehicleSchema = new Schema(
   },
 );
 
-// A plate is unique per issuing state, not globally.
-vehicleSchema.index({ plateNumber: 1, state: 1 }, { unique: true });
+// A plate is unique per registering province, not globally.
+vehicleSchema.index({ plateNumber: 1, province: 1 }, { unique: true });
 vehicleSchema.index({ ownerName: 'text', vin: 'text', make: 'text', model: 'text' });
 
 export const Vehicle = mongoose.models.Vehicle || mongoose.model('Vehicle', vehicleSchema);

@@ -3,7 +3,7 @@ import React, { useState } from 'react';
 import { Modal } from '../common/Modal.jsx';
 import { Button } from '../common/Button.jsx';
 import { vehicleApi } from '../../services/api/vehicleApi.js';
-import { US_STATES } from '../../utils/constants.js';
+import { PhAddressSelect } from '../common/PhAddressSelect.jsx';
 import { useAppContext } from '../../context/AppContext.jsx';
 
 export function VehicleForm({ isOpen, onClose, onSuccess }) {
@@ -12,7 +12,12 @@ export function VehicleForm({ isOpen, onClose, onSuccess }) {
 
   const [formData, setFormData] = useState({
     plateNumber: '',
-    state: 'CA',
+    province: '',
+    provinceCode: '',
+    municipality: '',
+    municipalityCode: '',
+    barangay: '',
+    barangayCode: '',
     make: '',
     model: '',
     year: new Date().getFullYear(),
@@ -28,10 +33,18 @@ export function VehicleForm({ isOpen, onClose, onSuccess }) {
     setFormData((prev) => ({ ...prev, [field]: value }));
   }
 
+  function handleAddressChange(patch) {
+    setFormData((prev) => ({ ...prev, ...patch }));
+  }
+
   async function handleSubmit(e) {
     e.preventDefault();
     if (!formData.plateNumber.trim() || !formData.make.trim()) {
       showToast({ title: 'Validation Error', description: 'License plate and vehicle make are required.', status: 'error' });
+      return;
+    }
+    if (!formData.province) {
+      showToast({ title: 'Validation Error', description: 'Province is required.', status: 'error' });
       return;
     }
 
@@ -48,7 +61,12 @@ export function VehicleForm({ isOpen, onClose, onSuccess }) {
         onClose();
         setFormData({
           plateNumber: '',
-          state: 'CA',
+          province: '',
+          provinceCode: '',
+          municipality: '',
+          municipalityCode: '',
+          barangay: '',
+          barangayCode: '',
           make: '',
           model: '',
           year: new Date().getFullYear(),
@@ -86,30 +104,23 @@ export function VehicleForm({ isOpen, onClose, onSuccess }) {
       }
     >
       <form onSubmit={handleSubmit} className="space-y-3 text-xs">
-        <div className="grid grid-cols-2 gap-3">
-          <div>
-            <label className="block font-semibold text-slate-700 mb-1">License Plate *</label>
-            <input
-              type="text"
-              required
-              value={formData.plateNumber}
-              onChange={(e) => handleChange('plateNumber', e.target.value.toUpperCase())}
-              placeholder="e.g. 8ABC123"
-              className="w-full font-mono uppercase font-bold p-2 rounded-lg border border-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
-          </div>
-          <div>
-            <label className="block font-semibold text-slate-700 mb-1">State / Province</label>
-            <select
-              value={formData.state}
-              onChange={(e) => handleChange('state', e.target.value)}
-              className="w-full p-2 rounded-lg border border-slate-300 bg-white"
-            >
-              {US_STATES.map((st) => (
-                <option key={st} value={st}>{st}</option>
-              ))}
-            </select>
-          </div>
+        <div>
+          <label className="block font-semibold text-slate-700 mb-1">License Plate *</label>
+          <input
+            type="text"
+            required
+            value={formData.plateNumber}
+            onChange={(e) => handleChange('plateNumber', e.target.value.toUpperCase())}
+            placeholder="e.g. 8ABC123"
+            className="w-full font-mono uppercase font-bold p-2 rounded-lg border border-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-500"
+          />
+        </div>
+
+        <div>
+          <label className="block font-semibold text-slate-700 mb-1">
+            Registered Address (Province / Municipality / Barangay) *
+          </label>
+          <PhAddressSelect value={formData} onChange={handleAddressChange} labels={false} />
         </div>
 
         <div className="grid grid-cols-3 gap-3">

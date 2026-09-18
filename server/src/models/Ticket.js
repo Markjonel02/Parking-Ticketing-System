@@ -30,7 +30,14 @@ const ticketSchema = new Schema(
     },
     vehicle: { type: Schema.Types.ObjectId, ref: 'Vehicle', required: true, index: true },
     plateNumber: { type: String, required: true, uppercase: true, trim: true, index: true },
-    state: { type: String, required: true, uppercase: true, trim: true },
+    // Snapshotted from the vehicle's PH address at issue time (see note on
+    // baseFine/lateFee/totalDue below re: snapshotting).
+    province: { type: String, required: true, trim: true },
+    provinceCode: { type: String, trim: true },
+    municipality: { type: String, trim: true },
+    municipalityCode: { type: String, trim: true },
+    barangay: { type: String, trim: true },
+    barangayCode: { type: String, trim: true },
 
     violation: { type: Schema.Types.ObjectId, ref: 'Violation', required: true, index: true },
     violationCode: { type: String, uppercase: true },

@@ -6,7 +6,7 @@ import { violationApi } from '../../services/api/violationApi.js';
 import { ticketApi } from '../../services/api/ticketApi.js';
 import { vehicleApi } from '../../services/api/vehicleApi.js';
 import { formatCurrency } from '../../utils/formatCurrency.js';
-import { US_STATES } from '../../utils/constants.js';
+import { PhAddressSelect } from '../common/PhAddressSelect.jsx';
 import { useAppContext } from '../../context/AppContext.jsx';
 import { useAuth } from '../../hooks/useAuth.js';
 import { Search, Camera, AlertTriangle, Shield, CheckCircle2 } from 'lucide-react';
@@ -21,7 +21,14 @@ const [zones, setZones] = useState([]);
 
   // Form State
   const [plateNumber, setPlateNumber] = useState('');
-  const [state, setState] = useState('CA');
+  const [address, setAddress] = useState({
+    province: '',
+    provinceCode: '',
+    municipality: '',
+    municipalityCode: '',
+    barangay: '',
+    barangayCode: ''
+  });
   const [violationId, setViolationId] = useState('');
   const [zoneId, setZoneId] = useState('zn-downtown-01');
   const [locationDescription, setLocationDescription] = useState('');
@@ -65,7 +72,16 @@ const [zones, setZones] = useState([]);
       const res = await vehicleApi.getVehicleByPlate(plateNumber.trim());
       if (res.success && res.data) {
         setLookupResult(res.data);
-        if (res.data.state) setState(res.data.state);
+        if (res.data.province) {
+          setAddress({
+            province: res.data.province || '',
+            provinceCode: res.data.provinceCode || '',
+            municipality: res.data.municipality || '',
+            municipalityCode: res.data.municipalityCode || '',
+            barangay: res.data.barangay || '',
+            barangayCode: res.data.barangayCode || ''
+          });
+        }
         showToast({
           title: 'Vehicle Recognized',
           description: `${res.data.year || ''} ${res.data.make} ${res.data.model} found in DMV registry.`,
@@ -91,12 +107,16 @@ const [zones, setZones] = useState([]);
       showToast({ title: 'Validation Error', description: 'License plate and violation code are required.', status: 'error' });
       return;
     }
+    if (!address.province) {
+      showToast({ title: 'Validation Error', description: 'Province is required for the citation record.', status: 'error' });
+      return;
+    }
 
     setIsSubmitting(true);
     try {
       const payload = {
         plateNumber: plateNumber.trim().toUpperCase(),
-        state,
+        ...address,
         violationId,
         zoneId,
         locationDescription: locationDescription || 'Curbside Meter Bay',
@@ -156,49 +176,40 @@ const [zones, setZones] = useState([]);
       }
     >
       <form onSubmit={handleSubmit} className="space-y-4">
-        {/* Plate & State Lookup */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-          <div className="sm:col-span-2">
-            <label className="block text-xs font-semibold text-slate-700 mb-1">
-              Vehicle License Plate <span className="text-red-500">*</span>
-            </label>
-            <div className="flex gap-2">
-              <input
-                type="text"
-                required
-                value={plateNumber}
-                onChange={(e) => setPlateNumber(e.target.value.toUpperCase())}
-                placeholder="e.g. 7XYZ890"
-                className="flex-1 font-mono uppercase text-sm font-bold px-3 py-2 rounded-lg border border-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
-              <Button
-                type="button"
-                variant="outline"
-                colorScheme="gray"
-                size="sm"
-                onClick={handlePlateSearch}
-                isLoading={isLookingUp}
-                leftIcon={<Search className="w-3.5 h-3.5" />}
-              >
-                Scan Plate
-              </Button>
-            </div>
-          </div>
-
-          <div>
-            <label className="block text-xs font-semibold text-slate-700 mb-1">State / Jurisdiction</label>
-            <select
-              value={state}
-              onChange={(e) => setState(e.target.value)}
-              className="w-full text-xs px-3 py-2.5 rounded-lg border border-slate-300 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+        {/* Plate Lookup */}
+        <div>
+          <label className="block text-xs font-semibold text-slate-700 mb-1">
+            Vehicle License Plate <span className="text-red-500">*</span>
+          </label>
+          <div className="flex gap-2">
+            <input
+              type="text"
+              required
+              value={plateNumber}
+              onChange={(e) => setPlateNumber(e.target.value.toUpperCase())}
+              placeholder="e.g. 7XYZ890"
+              className="flex-1 font-mono uppercase text-sm font-bold px-3 py-2 rounded-lg border border-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+            <Button
+              type="button"
+              variant="outline"
+              colorScheme="gray"
+              size="sm"
+              onClick={handlePlateSearch}
+              isLoading={isLookingUp}
+              leftIcon={<Search className="w-3.5 h-3.5" />}
             >
-              {US_STATES.map((st) => (
-                <option key={st} value={st}>
-                  {st}
-                </option>
-              ))}
-            </select>
+              Scan Plate
+            </Button>
           </div>
+        </div>
+
+        {/* Address / Jurisdiction */}
+        <div>
+          <label className="block text-xs font-semibold text-slate-700 mb-1">
+            Registered Address (Province / Municipality / Barangay) <span className="text-red-500">*</span>
+          </label>
+          <PhAddressSelect value={address} onChange={setAddress} size="sm" labels={false} />
         </div>
 
         {/* DMV match banner */}

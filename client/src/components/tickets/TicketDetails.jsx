@@ -156,7 +156,13 @@ export function TicketDetails({
               {ticket.plateNumber}
             </div>
             <div>
-              <p className="text-xs text-slate-400">Vehicle State: <span className="text-white font-semibold">{ticket.state || 'CA'}</span></p>
+              <p className="text-xs text-slate-400">
+                Address: <span className="text-white font-semibold">
+                  {[ticket.barangay && `Brgy. ${ticket.barangay}`, ticket.municipality, ticket.province]
+                    .filter(Boolean)
+                    .join(', ') || '—'}
+                </span>
+              </p>
               <h4 className="text-sm font-bold text-white">{ticket.violationTitle}</h4>
             </div>
           </div>

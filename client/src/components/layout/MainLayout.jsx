@@ -1,15 +1,22 @@
 // client/src/components/layout/MainLayout.jsx
-import React, { useState } from 'react';
-import { Sidebar } from './Sidebar.jsx';
-import { TopNavigation } from './TopNavigation.jsx';
-import { MobileNavigation } from './MobileNavigation.jsx';
-import { useAppContext } from '../../context/AppContext.jsx';
-import { useAuth } from '../../hooks/useAuth.js';
-import { ConfirmDialog } from '../common/ConfirmDialog.jsx';
-import { CheckCircle2, AlertCircle, AlertTriangle, Info, X } from 'lucide-react';
+import React, { useState } from "react";
+import { Sidebar } from "./Sidebar.jsx";
+import { TopNavigation } from "./TopNavigation.jsx";
+import { MobileNavigation } from "./MobileNavigation.jsx";
+import { useAppContext } from "../../context/AppContext.jsx";
+import { useAuth } from "../../hooks/useAuth.js";
+import { ConfirmDialog } from "../common/ConfirmDialog.jsx";
+import {
+  CheckCircle2,
+  AlertCircle,
+  AlertTriangle,
+  Info,
+  X,
+} from "lucide-react";
 
 export function MainLayout({ children }) {
-  const { toasts, removeToast, isLogoutConfirmOpen, setIsLogoutConfirmOpen } = useAppContext();
+  const { toasts, removeToast, isLogoutConfirmOpen, setIsLogoutConfirmOpen } =
+    useAppContext();
   const { logout } = useAuth();
   const [isLoggingOut, setIsLoggingOut] = useState(false);
 
@@ -48,17 +55,17 @@ export function MainLayout({ children }) {
       <div className="fixed top-4 right-4 z-50 flex flex-col gap-2.5 max-w-sm w-full pointer-events-none">
         {toasts.map((toast) => {
           const statusStyles = {
-            success: 'bg-emerald-600 text-white border-emerald-700',
-            error: 'bg-red-600 text-white border-red-700',
-            warning: 'bg-amber-600 text-white border-amber-700',
-            info: 'bg-blue-600 text-white border-blue-700'
+            success: "bg-emerald-600 text-white border-emerald-700",
+            error: "bg-red-600 text-white border-red-700",
+            warning: "bg-amber-600 text-white border-amber-700",
+            info: "bg-blue-600 text-white border-blue-700",
           };
 
           const statusIcons = {
             success: <CheckCircle2 className="w-4 h-4 shrink-0" />,
             error: <AlertCircle className="w-4 h-4 shrink-0" />,
             warning: <AlertTriangle className="w-4 h-4 shrink-0" />,
-            info: <Info className="w-4 h-4 shrink-0" />
+            info: <Info className="w-4 h-4 shrink-0" />,
           };
 
           return (
@@ -72,7 +79,11 @@ export function MainLayout({ children }) {
               {statusIcons[toast.status] || statusIcons.info}
               <div className="flex-1 min-w-0">
                 <p className="font-semibold">{toast.title}</p>
-                {toast.description && <p className="opacity-90 mt-0.5 leading-normal">{toast.description}</p>}
+                {toast.description && (
+                  <p className="opacity-90 mt-0.5 leading-normal">
+                    {toast.description}
+                  </p>
+                )}
               </div>
               <button
                 onClick={() => removeToast(toast.id)}
