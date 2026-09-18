@@ -8,8 +8,8 @@ export function validateCreateTicket(data) {
     errors.plateNumber = 'Plate must be between 2 and 10 characters';
   }
 
-  if (!data.state || !data.state.trim()) {
-    errors.state = 'Vehicle registration state/province is required';
+  if (!data.province || !data.province.trim()) {
+    errors.province = 'Vehicle registration province is required';
   }
 
   if (!data.violationId && !data.violationCode) {

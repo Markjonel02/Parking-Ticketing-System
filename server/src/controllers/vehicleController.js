@@ -5,9 +5,9 @@ import { getPagination } from '../utils/pagination.js';
 import { ApiError } from '../utils/ApiError.js';
 import { asyncHandler } from '../utils/asyncHandler.js';
 
-function buildFilter({ search, state }) {
+function buildFilter({ search, province }) {
   const filter = {};
-  if (state) filter.state = state.toUpperCase();
+  if (province) filter.province = province;
   if (search) filter.$text = { $search: search };
   return filter;
 }
@@ -28,8 +28,8 @@ async function enrichVehicle(vehicle) {
 
 export class VehicleController {
   static getVehicles = asyncHandler(async (req, res) => {
-    const { search, state, page = 1, limit = 10 } = req.query;
-    const filter = buildFilter({ search, state });
+    const { search, province, page = 1, limit = 10 } = req.query;
+    const filter = buildFilter({ search, province });
     const { skip, limit: pageSize, buildMeta } = getPagination(page, limit);
 
     const [vehicles, totalItems] = await Promise.all([
@@ -66,14 +66,14 @@ export class VehicleController {
 
   static registerVehicle = asyncHandler(async (req, res) => {
     const plate = req.body.plateNumber.trim().toUpperCase();
-    const state = req.body.state.trim().toUpperCase();
+    const province = req.body.province.trim();
 
-    const existing = await Vehicle.findOne({ plateNumber: plate, state });
+    const existing = await Vehicle.findOne({ plateNumber: plate, province });
     if (existing) {
-      throw ApiError.conflict(`Vehicle with plate ${plate} (${state}) is already registered.`);
+      throw ApiError.conflict(`Vehicle with plate ${plate} (${province}) is already registered.`);
     }
 
-    const vehicle = await Vehicle.create({ ...req.body, plateNumber: plate, state });
+    const vehicle = await Vehicle.create({ ...req.body, plateNumber: plate, province });
 
     return res.status(201).json({
       success: true,

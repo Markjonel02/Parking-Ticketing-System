@@ -19,7 +19,7 @@ export function VehicleTable({
           <div className="px-2.5 py-1 rounded bg-slate-900 text-white font-mono font-bold text-xs tracking-wider border border-slate-800 shrink-0">
             {v.plateNumber}
           </div>
-          <span className="text-xs text-slate-500 font-semibold">{v.state || 'CA'}</span>
+          <span className="text-xs text-slate-500 font-semibold">{v.province || '—'}</span>
         </div>
       )
     },
@@ -40,8 +40,8 @@ export function VehicleTable({
       key: 'ownerName',
       render: (v) => (
         <div>
-          <span className="text-xs text-slate-800 font-medium block">{v.ownerName || 'State Registry'}</span>
-          <span className="text-[11px] text-slate-400">{v.registeredCity || 'Metropolitan Area'}</span>
+          <span className="text-xs text-slate-800 font-medium block">{v.ownerName || 'Municipal Registry'}</span>
+          <span className="text-[11px] text-slate-400">{v.municipality || v.registeredCity || 'Metropolitan Area'}</span>
         </div>
       )
     },

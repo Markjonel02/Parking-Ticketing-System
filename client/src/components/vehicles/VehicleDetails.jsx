@@ -84,7 +84,10 @@ export function VehicleDetails({ plateNumber, isOpen, onClose, onSelectTicket })
                   {vehicle.year} {vehicle.make} {vehicle.model}
                 </h4>
                 <p className="text-xs text-slate-400">
-                  State: <span className="text-white font-semibold">{vehicle.state}</span> · Color: {vehicle.color} · VIN: {vehicle.vin}
+                  Province: <span className="text-white font-semibold">{vehicle.province || '—'}</span>
+                  {vehicle.municipality && <> · {vehicle.municipality}</>}
+                  {vehicle.barangay && <> · Brgy. {vehicle.barangay}</>}
+                  {' '}· Color: {vehicle.color} · VIN: {vehicle.vin}
                 </p>
               </div>
             </div>
@@ -110,8 +113,12 @@ export function VehicleDetails({ plateNumber, isOpen, onClose, onSelectTicket })
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs p-4 rounded-xl bg-slate-50 border border-slate-200">
             <div>
               <span className="text-slate-400 block">Registered Owner</span>
-              <span className="font-semibold text-slate-800 text-sm">{vehicle.ownerName || 'State Records'}</span>
-              <p className="text-slate-500 mt-0.5">{vehicle.registeredCity || 'San Francisco, CA'}</p>
+              <span className="font-semibold text-slate-800 text-sm">{vehicle.ownerName || 'Municipal Records'}</span>
+              <p className="text-slate-500 mt-0.5">
+                {[vehicle.barangay && `Brgy. ${vehicle.barangay}`, vehicle.municipality, vehicle.province]
+                  .filter(Boolean)
+                  .join(', ') || vehicle.registeredCity || 'Address not on file'}
+              </p>
             </div>
             <div>
               <span className="text-slate-400 block">Owner Contact</span>

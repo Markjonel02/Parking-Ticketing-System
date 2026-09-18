@@ -24,7 +24,7 @@ export function TicketTable({
           <div className="px-2.5 py-1 rounded bg-slate-900 text-white font-mono font-bold text-xs tracking-wider border border-slate-800 shrink-0">
             {t.plateNumber}
           </div>
-          <span className="text-xs text-slate-500">{t.state || 'CA'}</span>
+          <span className="text-xs text-slate-500">{t.province || '—'}</span>
         </div>
       )
     },

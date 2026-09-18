@@ -6,8 +6,8 @@ export function validateVehicle(data) {
     errors.plateNumber = 'License plate number is required';
   }
 
-  if (!data.state || !data.state.trim()) {
-    errors.state = 'State or jurisdiction is required';
+  if (!data.province || !data.province.trim()) {
+    errors.province = 'Province is required';
   }
 
   if (!data.make || !data.make.trim()) {

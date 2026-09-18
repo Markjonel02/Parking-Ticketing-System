@@ -32,11 +32,6 @@ export function AppProvider({ children }) {
   const [quickPayTicket, setQuickPayTicket] = useState(null);
   const [refreshKey, setRefreshKey] = useState(0);
 
-  // Shared with TopNavigation (which opens it) and MainLayout (which
-  // renders it). Kept here rather than local to TopNavigation so the
-  // dialog renders outside the header — see MainLayout.jsx for why.
-  const [isLogoutConfirmOpen, setIsLogoutConfirmOpen] = useState(false);
-
   // Global Toasts system
   const [toasts, setToasts] = useState([]);
 
@@ -101,8 +96,6 @@ export function AppProvider({ children }) {
     setQuickPayTicket,
     refreshKey,
     triggerRefresh,
-    isLogoutConfirmOpen,
-    setIsLogoutConfirmOpen,
     toasts,
     showToast,
     removeToast
