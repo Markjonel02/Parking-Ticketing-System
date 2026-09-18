@@ -1,13 +1,28 @@
 // client/src/components/layout/MainLayout.jsx
-import React from 'react';
+import React, { useState } from 'react';
 import { Sidebar } from './Sidebar.jsx';
 import { TopNavigation } from './TopNavigation.jsx';
 import { MobileNavigation } from './MobileNavigation.jsx';
 import { useAppContext } from '../../context/AppContext.jsx';
+import { useAuth } from '../../hooks/useAuth.js';
+import { ConfirmDialog } from '../common/ConfirmDialog.jsx';
 import { CheckCircle2, AlertCircle, AlertTriangle, Info, X } from 'lucide-react';
 
 export function MainLayout({ children }) {
-  const { toasts, removeToast } = useAppContext();
+  const { toasts, removeToast, isLogoutConfirmOpen, setIsLogoutConfirmOpen } = useAppContext();
+  const { logout } = useAuth();
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
+
+  async function handleLogout() {
+    if (isLoggingOut) return;
+    setIsLoggingOut(true);
+    try {
+      await logout();
+    } finally {
+      setIsLoggingOut(false);
+      setIsLogoutConfirmOpen(false);
+    }
+  }
 
   return (
     <div className="flex min-h-screen bg-slate-50 text-slate-900 antialiased font-sans">
@@ -69,6 +84,24 @@ export function MainLayout({ children }) {
           );
         })}
       </div>
+
+      {/* Logout confirmation — rendered here (not inside TopNavigation) so
+          it isn't nested under the header's backdrop-blur. backdrop-filter
+          creates a new containing block for position:fixed descendants,
+          which was clipping the dialog to the header's box instead of the
+          full viewport. */}
+      <ConfirmDialog
+        isOpen={isLogoutConfirmOpen}
+        onClose={() => setIsLogoutConfirmOpen(false)}
+        onConfirm={handleLogout}
+        title="Log Out"
+        message="Are you sure you want to log out of ParkGuard?"
+        confirmText="Yes, Log Out"
+        cancelText="Cancel"
+        colorScheme="red"
+        type="warning"
+        isLoading={isLoggingOut}
+      />
     </div>
   );
 }
